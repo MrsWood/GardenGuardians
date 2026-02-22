@@ -2,6 +2,12 @@
 
 This is a static HTML/JS/CSS game ready to publish with GitHub Pages.
 
+## Play on Web
+
+Live game:
+
+- https://mrswood.github.io/GardenGuardians/
+
 ## Play Locally
 
 Open `index.html` in a browser.
