@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cannon Style Options</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      background: #0f172a;
+      color: #e5ecff;
+    }
+    .wrap {
+      max-width: 1200px;
+      margin: 24px auto;
+      padding: 0 16px 24px;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+    }
+    p {
+      margin: 0 0 18px;
+      color: #b7c5e8;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 14px;
+    }
+    .card {
+      background: #1a2440;
+      border: 1px solid #3b4a73;
+      border-radius: 12px;
+      padding: 12px;
+      text-align: center;
+    }
+    .label {
+      margin-top: 8px;
+      font-weight: 700;
+      font-size: 14px;
+    }
+    .pick {
+      margin-top: 4px;
+      font-size: 12px;
+      color: #ffd983;
+    }
+    svg {
+      width: 100%;
+      height: 140px;
+      display: block;
+      border-radius: 8px;
+      background: linear-gradient(180deg, #f9fbff 0%, #e8eef9 100%);
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Choose a Cannon Look</h1>
+    <p>Reply with the number you want: <strong>1, 2, 3, 4, or 5</strong>.</p>
+    <div class="grid">
+      <div class="card">
+        <svg viewBox="0 0 220 140" aria-label="Option 1">
+          <ellipse cx="110" cy="120" rx="70" ry="10" fill="#ccb08a"/>
+          <rect x="66" y="94" width="72" height="16" rx="5" fill="#6f4b2e"/>
+          <circle cx="80" cy="114" r="12" fill="#222831"/><circle cx="124" cy="114" r="12" fill="#222831"/>
+          <ellipse cx="92" cy="70" rx="38" ry="24" fill="#161b22"/>
+          <rect x="94" y="62" width="78" height="16" rx="8" fill="#11161d"/>
+          <circle cx="171" cy="70" r="10" fill="#2f3742"/><circle cx="171" cy="70" r="5" fill="#0c1116"/>
+          <circle cx="52" cy="102" r="7" fill="#545e6d"/><circle cx="41" cy="110" r="6" fill="#606a78"/><circle cx="63" cy="112" r="6" fill="#4a5360"/>
+        </svg>
+        <div class="label">1. Pirate Deck Cannon</div>
+        <div class="pick">Short, fat, classic cartoon</div>
+      </div>
+      <div class="card">
+        <svg viewBox="0 0 220 140" aria-label="Option 2">
+          <ellipse cx="110" cy="120" rx="70" ry="10" fill="#ccb08a"/>
+          <polygon points="72,105 138,105 148,95 62,95" fill="#765533"/>
+          <circle cx="72" cy="112" r="16" fill="#8a5d35"/><circle cx="72" cy="112" r="4" fill="#2f2218"/>
+          <circle cx="138" cy="112" r="16" fill="#8a5d35"/><circle cx="138" cy="112" r="4" fill="#2f2218"/>
+          <rect x="78" y="60" width="98" height="14" rx="5" fill="#141920"/>
+          <ellipse cx="88" cy="67" rx="24" ry="16" fill="#1b212a"/>
+          <circle cx="176" cy="67" r="9" fill="#9a7a42"/><circle cx="176" cy="67" r="4" fill="#0f141a"/>
+        </svg>
+        <div class="label">2. Field Cannon</div>
+        <div class="pick">Longer barrel, big wheels</div>
+      </div>
+      <div class="card">
+        <svg viewBox="0 0 220 140" aria-label="Option 3">
+          <ellipse cx="110" cy="120" rx="70" ry="10" fill="#ccb08a"/>
+          <rect x="60" y="96" width="90" height="18" rx="4" fill="#8e949d"/>
+          <rect x="66" y="90" width="78" height="10" rx="4" fill="#757d89"/>
+          <ellipse cx="96" cy="68" rx="44" ry="28" fill="#12161c"/>
+          <rect x="106" y="60" width="72" height="16" rx="8" fill="#0f1318"/>
+          <rect x="70" y="54" width="50" height="5" rx="2" fill="#3a4048"/>
+          <rect x="70" y="78" width="50" height="5" rx="2" fill="#3a4048"/>
+          <circle cx="178" cy="68" r="11" fill="#49525e"/><circle cx="178" cy="68" r="5" fill="#0b1016"/>
+        </svg>
+        <div class="label">3. Castle Bombard</div>
+        <div class="pick">Bulbous on stone base</div>
+      </div>
+      <div class="card">
+        <svg viewBox="0 0 220 140" aria-label="Option 4">
+          <ellipse cx="110" cy="120" rx="70" ry="10" fill="#ccb08a"/>
+          <rect x="70" y="96" width="70" height="15" rx="5" fill="#6b4a2b"/>
+          <circle cx="82" cy="112" r="11" fill="#20262f"/><circle cx="126" cy="112" r="11" fill="#20262f"/>
+          <ellipse cx="96" cy="70" rx="32" ry="22" fill="#171c24"/>
+          <path d="M100 59 L190 48 L190 92 L100 81 Z" fill="#11161d"/>
+          <ellipse cx="190" cy="70" rx="16" ry="22" fill="#141920"/>
+          <circle cx="190" cy="70" r="7" fill="#0a0f15"/>
+          <line x1="70" y1="52" x2="62" y2="36" stroke="#2e333c" stroke-width="3" />
+          <circle cx="60" cy="33" r="3" fill="#ffb451"/>
+        </svg>
+        <div class="label">4. Comedic Cannon</div>
+        <div class="pick">Trumpet muzzle + fuse</div>
+      </div>
+      <div class="card">
+        <svg viewBox="0 0 220 140" aria-label="Option 5">
+          <ellipse cx="110" cy="120" rx="70" ry="10" fill="#ccb08a"/>
+          <rect x="68" y="95" width="76" height="14" rx="5" fill="#7a5631"/>
+          <circle cx="82" cy="112" r="12" fill="#2f3742"/><circle cx="130" cy="112" r="12" fill="#2f3742"/>
+          <ellipse cx="95" cy="70" rx="36" ry="24" fill="#1a2029"/>
+          <rect x="99" y="61" width="78" height="17" rx="8" fill="#131821"/>
+          <circle cx="177" cy="70" r="10" fill="#b58c45"/><circle cx="177" cy="70" r="5" fill="#0d1218"/>
+          <circle cx="72" cy="58" r="2" fill="#d7b45f"/><circle cx="86" cy="50" r="2" fill="#d7b45f"/><circle cx="94" cy="60" r="2" fill="#d7b45f"/>
+        </svg>
+        <div class="label">5. Tin Toy Cannon</div>
+        <div class="pick">Clean silhouette, high readability</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

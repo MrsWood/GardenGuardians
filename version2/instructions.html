@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Garden Defense - How To Play</title>
+  <style>
+    :root {
+      --bg: #0f1424;
+      --panel: #1a2340;
+      --ink: #eaf0ff;
+      --muted: #b9c5e8;
+      --line: #334570;
+      --accent: #ffe072;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: radial-gradient(circle at top, #24386b, var(--bg) 55%);
+      color: var(--ink);
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      line-height: 1.4;
+    }
+    .wrap {
+      width: min(1000px, 94vw);
+      margin: 28px auto;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 18px;
+    }
+    h1, h2 { margin: 0 0 10px; }
+    h1 { font-size: 30px; }
+    h2 { font-size: 20px; color: var(--accent); margin-top: 18px; }
+    p, li { color: var(--muted); }
+    .note {
+      background: rgba(255, 224, 114, 0.1);
+      border: 1px solid rgba(255, 224, 114, 0.35);
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin: 12px 0 4px;
+    }
+    .grid {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    }
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px;
+      background: rgba(12, 19, 40, 0.45);
+    }
+    code {
+      background: rgba(255, 255, 255, 0.08);
+      padding: 1px 6px;
+      border-radius: 6px;
+      color: #fff4bf;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Garden Defense: How To Play</h1>
+    <p>Protect the vegetable garden from invading bugs. If vegetables are eaten, your <strong>Vegetables Remaining</strong> drops. Reach 0 and the run ends.</p>
+
+    <h2>Goal</h2>
+    <ul>
+      <li>Use the <strong>Level selector</strong> to choose a map/level before starting.</li>
+      <li>Survive all waves in the selected level to complete it.</li>
+      <li>Your score is based on <strong>highest wave survived (cleared)</strong>.</li>
+      <li>Highscore tie-breaker: higher <strong>unspent money</strong> wins.</li>
+    </ul>
+
+    <h2>Controls</h2>
+    <ul>
+      <li><code>Left Click</code> empty grass: place selected tower.</li>
+      <li><code>Left Click</code> tower: select tower and show its range.</li>
+      <li><code>Right Click</code> tower: upgrade tower.</li>
+      <li><code>Upgrade Panel</code>: use <strong>Upgrade</strong>, <strong>Sell</strong>, and per-tower <strong>Target</strong> controls.</li>
+      <li><code>Level</code>: choose the level/map before starting a run.</li>
+      <li><code>Difficulty</code>: choose <strong>Easy / Normal / Hard</strong> in the top controls.</li>
+      <li><code>Start Wave</code>: begin a new wave immediately. Starting early during countdown gives a <strong>+25%</strong> early-start cash bonus (based on wave-clear bonus).</li>
+      <li><code>Target: Garden / Closest</code>: switches spray targeting mode.</li>
+    </ul>
+    <div class="note">Waves auto-start 10 seconds after a clear if you do not start one manually. Starting early awards a <strong>+25%</strong> early-start cash bonus (based on wave-clear bonus).</div>
+
+    <h2>Defenses</h2>
+    <div class="grid">
+      <div class="card">
+        <strong>Sprayer Tower ($25)</strong>
+        <ul>
+          <li>Fires a fan-shaped aerosol burst.</li>
+          <li>Rotates to track target direction.</li>
+          <li>Targeting modes:
+            <br />- <code>Closest</code> enemy in range
+            <br />- <code>Closest to Garden</code> in range
+          </li>
+        </ul>
+      </div>
+      <div class="card">
+        <strong>Glue Pot Tower ($35)</strong>
+        <ul>
+          <li>Throws sticky trap patches onto paths.</li>
+          <li>Bugs crossing glue are slowed.</li>
+          <li>Upgrades improve trap life, radius, and slow power.</li>
+          <li>Some enemies have glue resistance, so slows are partially reduced.</li>
+        </ul>
+      </div>
+    </div>
+
+    <h2>Tower Stats By Level</h2>
+    <div class="grid">
+      <div class="card">
+        <strong>Sprayer (Levels 1-6)</strong>
+        <ul>
+          <li>L1: Damage 10, Range 120, Fire Rate 46</li>
+          <li>L2: Damage 15, Range 128, Fire Rate 42</li>
+          <li>L3: Damage 20, Range 136, Fire Rate 38</li>
+          <li>L4: Damage 25, Range 144, Fire Rate 34</li>
+          <li>L5: Damage 30, Range 152, Fire Rate 30</li>
+          <li>L6: Damage 35, Range 160, Fire Rate 26</li>
+        </ul>
+      </div>
+      <div class="card">
+        <strong>Glue Pot (Levels 1-6)</strong>
+        <ul>
+          <li>L1: Range 135, Fire Rate 74, Slow 0.62, Trap Radius 24, Trap Life 185</li>
+          <li>L2: Range 145, Fire Rate 69, Slow 0.57, Trap Radius 26, Trap Life 211</li>
+          <li>L3: Range 155, Fire Rate 64, Slow 0.52, Trap Radius 28, Trap Life 237</li>
+          <li>L4: Range 165, Fire Rate 59, Slow 0.47, Trap Radius 30, Trap Life 263</li>
+          <li>L5: Range 175, Fire Rate 54, Slow 0.42, Trap Radius 32, Trap Life 289</li>
+          <li>L6: Range 185, Fire Rate 49, Slow 0.37, Trap Radius 34, Trap Life 315</li>
+        </ul>
+      </div>
+    </div>
+
+    <h2>Attackers</h2>
+    <div class="grid">
+      <div class="card"><strong>Aphid (Scout)</strong><br />Fast, low HP.</div>
+      <div class="card"><strong>Praying Mantis (Hunter)</strong><br />Balanced threat.</div>
+      <div class="card"><strong>Locust (Swarm)</strong><br />Quick, moderate HP.</div>
+      <div class="card"><strong>Ladybug (Tank)</strong><br />High HP and armor.</div>
+      <div class="card"><strong>Caterpillar (Bulwark)</strong><br />Glue-resistant and durable.</div>
+      <div class="card"><strong>Gate Crasher (Boss)</strong><br />Appears every 5th wave with very high HP, armor, and glue resistance.</div>
+    </div>
+
+    <h2>Boss Waves</h2>
+    <ul>
+      <li>Boss wave frequency depends on difficulty (Easy: 6, Normal: 5, Hard: 4).</li>
+      <li>The <strong>Gate Crasher</strong> spawns with support enemies on one path.</li>
+      <li>HUD marks boss waves and wave-clear text confirms boss defeat.</li>
+      <li>The <strong>final wave of each level</strong> has larger attackers with <strong>100% more strength</strong>.</li>
+    </ul>
+
+    <h2>Difficulty Effects</h2>
+    <ul>
+      <li><strong>Easy</strong>: more starting money, softer waves, weaker bosses.</li>
+      <li><strong>Normal</strong>: default balance.</li>
+      <li><strong>Hard</strong>: less starting money, tougher waves, stronger/more frequent bosses.</li>
+      <li>Changing difficulty resets the current run.</li>
+    </ul>
+
+    <h2>Garden Mechanics</h2>
+    <ul>
+      <li>Map style: prairie garden with swaying prairie grasses and black-eyed Susans along the paths.</li>
+      <li>When a bug reaches a gate, it moves to a vegetable and starts eating.</li>
+      <li>Each vegetable takes <strong>8 bites</strong> to fully disappear.</li>
+      <li>After finishing one vegetable, that attacker leaves the screen.</li>
+      <li>Vegetables Remaining starts at the real count on screen (currently <strong>21</strong>).</li>
+    </ul>
+
+    <h2>Special Event</h2>
+    <ul>
+      <li><strong>Bunny Attack</strong>: a large bunny randomly pops up in grass.</li>
+      <li>If it pops on a tower position, that tower implodes.</li>
+    </ul>
+
+    <h2>Highscores</h2>
+    <ul>
+      <li>At game over, if your run qualifies for top 10, the highscore panel appears.</li>
+      <li>Enter your name and submit.</li>
+      <li>Stored locally in your browser using <code>localStorage</code>.</li>
+    </ul>
+
+    <div class="note">Attribute values are expected to evolve. This guide is the baseline for current gameplay behavior.</div>
+  </div>
+</body>
+</html>

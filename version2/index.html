@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Protectors of Plants</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <div class="landingScreen" id="landingScreen">
+    <div class="landingCard">
+      <div class="landingDecor" aria-hidden="true">
+        <span class="landingMeadow"></span>
+        <span class="landingFlowerCluster">
+          <span class="landingFlowerGrass"></span>
+          <span class="landingStem st3"></span>
+          <span class="landingStem st4"></span>
+          <span class="landingStem st5"></span>
+          <span class="landingPetal p3"></span>
+          <span class="landingPetal p4"></span>
+          <span class="landingPetal p5"></span>
+        </span>
+        <span class="landingBugLeaf"></span>
+        <span class="landingBug">
+          <span class="landingBugSpot s1"></span>
+          <span class="landingBugSpot s2"></span>
+          <span class="landingBugSpot s3"></span>
+        </span>
+      </div>
+      <h1 class="landingTitle">Protectors of Plants</h1>
+      <p class="landingSub">Defend your garden from invading bugs across themed levels.</p>
+      <div class="landingActions">
+        <button id="landingStartBtn" type="button">Start New Game (Level 1)</button>
+        <button id="landingHowToBtn" type="button">How to Play</button>
+      </div>
+      <div class="landingContinueRow">
+        <select id="landingLevelSelect" title="Campaign Level"></select>
+        <button id="landingContinueBtn" type="button">Continue Campaign</button>
+      </div>
+      <div class="landingHint">Tip: Build towers, start waves early for +25% wave bonus, and bank leftover money at level end.</div>
+    </div>
+  </div>
+  <div class="shell">
+    <div class="top">
+      <div class="stats">
+        <span class="topStat">Bugs: <span id="enemyCount">0</span></span>
+        <span id="nextWaveCountdown"></span>
+      </div>
+      <div class="controls controlsMain">
+        <button id="sprayTowerBtn" class="towerPick iconOnly" title="Sprayer ($25) [1]" aria-label="Sprayer ($25) [1]"><span class="towerHotkey">1</span><span class="towerIcon sprayIcon" aria-hidden="true"></span><span class="towerName">Sprayer</span><span class="towerCost">$25</span></button>
+        <button id="glueTowerBtn" class="towerPick iconOnly" title="Glue Pot ($35) [2]" aria-label="Glue Pot ($35) [2]"><span class="towerHotkey">2</span><span class="towerIcon glueIcon" aria-hidden="true"></span><span class="towerName">Glue</span><span class="towerCost">$35</span></button>
+        <button id="hoseTowerBtn" class="towerPick iconOnly" title="Hosepipe ($45) [3]" aria-label="Hosepipe ($45) [3]"><span class="towerHotkey">3</span><span class="towerIcon hoseIcon" aria-hidden="true"></span><span class="towerName">Hose</span><span class="towerCost">$45</span></button>
+        <button id="nextLevelBtn">Next Level</button>
+        <button id="resetBtn">New Run</button>
+        <button id="minimalHudBtn">HUD: Full</button>
+      </div>
+    </div>
+
+    <div id="buildCue">Build mode: Sprayer selected. Click grass to place.</div>
+    <div class="towerPanel">
+      <div class="towerInfo">
+        Selected: <span id="towerInfoName">Sprayer</span> | $<span id="towerInfoCost">25</span> | <span id="towerInfoDesc">Fan-spray aerosol damage.</span>
+      </div>
+      <div class="upgradeInfo" id="upgradeInfo">
+        <span id="upgradeTitle"></span>
+        <span id="upgradeCost"></span>
+        <span id="upgradeStats"></span>
+        <span class="upgradeActions">
+          <button id="upgradeSelectedBtn" class="miniBtn" type="button">Upgrade</button>
+          <button id="sellSelectedBtn" class="miniBtn" type="button">Sell</button>
+          <label for="towerTargetSelect">Target</label>
+          <select id="towerTargetSelect">
+            <option value="garden">Garden</option>
+            <option value="closest">Closest</option>
+          </select>
+        </span>
+      </div>
+    </div>
+    <div id="status" data-tone="warn"></div>
+    <div class="gameWrap">
+      <canvas id="game" width="900" height="420"></canvas>
+      <div class="gameTopOverlay">
+        <span class="overlayStat" title="Level">Level <span id="levelStat">1</span></span>
+        <span class="overlayStat statWithIcon" title="Money">
+          <span class="statIcon coinStackIcon" aria-hidden="true"></span>
+          <span id="money" class="moneyValue">100</span>
+        </span>
+        <span class="overlayStat bankStat" title="Bank">
+          <span class="statIcon bankIcon" aria-hidden="true"></span>
+          <span id="bank">0</span>
+        </span>
+        <span class="overlayStat statWithIcon" title="Vegetables Remaining">
+          <span class="statIcon vegIconGroup" aria-hidden="true">
+            <span class="miniCarrot"></span>
+            <span class="miniTomato"></span>
+            <span class="miniLettuce"></span>
+          </span>
+          <span id="lives" class="vegValue">20</span>
+        </span>
+        <div class="waveTopHeader">
+          <div class="waveControl">
+            <span id="waveBanner" data-state="ready">Wave <span id="wave">0/10</span><span id="waveBannerTag">Ready</span></span>
+            <button id="startBtn">Start Wave</button>
+          </div>
+        </div>
+        <div id="waveCallout"></div>
+        <div id="waveSummary" class="waveSummary">
+          <div id="waveSummaryTitle" class="waveSummaryTitle"></div>
+          <div id="waveSummaryBody" class="waveSummaryBody"></div>
+        </div>
+      </div>
+    </div>
+    <div class="infoBar">
+      <div class="advancedWrap">
+        <details id="advancedPanel">
+          <summary>Game Settings</summary>
+          <div class="advancedControls">
+            <select id="difficultySelect" title="Difficulty">
+              <option value="easy">Easy</option>
+              <option value="normal" selected>Normal</option>
+              <option value="hard">Hard</option>
+            </select>
+            <select id="levelSelect" title="Level">
+              <option value="1" selected>Level 1</option>
+              <option value="2">Level 2</option>
+              <option value="3">Level 3</option>
+              <option value="4">Level 4</option>
+              <option value="5">Level 5</option>
+            </select>
+            <button id="targetModeBtn">Target: Garden</button>
+            <button id="instructionsBtn">How to Play</button>
+            <span class="topStat">Difficulty: <span id="difficultyStat">Normal</span></span>
+            <span class="topStat" id="nextWaveStat">Next: Ready</span>
+            <span class="topStat" id="bonusWaveStat">Bonus: None</span>
+          </div>
+        </details>
+      </div>
+      <details class="tipsPanel" id="helpPanel">
+        <summary>Help</summary>
+        <div class="tips">Left click: place/select tower | Right click: upgrade | Glue slows bugs.</div>
+      </details>
+
+      <details class="metaPanel" id="scoresPanel">
+        <summary>Scores</summary>
+        <div class="scorePanel" id="scorePanel">
+          <div class="scoreRow">
+            <input id="scoreNameInput" type="text" maxlength="18" placeholder="Your name" />
+            <button id="submitScoreBtn">Save Score</button>
+          </div>
+          <ol id="highscoreList"></ol>
+        </div>
+      </details>
+      <details class="metaPanel" id="badgesPanel">
+        <summary>Badges</summary>
+        <div class="badgePanel" id="badgePanel">
+          <div id="badgeList"></div>
+        </div>
+      </details>
+    </div>
+  </div>
+
+  <script src="./game.js"></script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+

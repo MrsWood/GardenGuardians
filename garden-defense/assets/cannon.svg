@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="metalA" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3c4452"/>
+      <stop offset="1" stop-color="#161b22"/>
+    </linearGradient>
+    <linearGradient id="woodA" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#9d6b3f"/>
+      <stop offset="1" stop-color="#6f4626"/>
+    </linearGradient>
+    <radialGradient id="shineA" cx="0.32" cy="0.28" r="0.7">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.38"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <ellipse cx="256" cy="430" rx="165" ry="24" fill="#000" opacity=".16"/>
+
+  <rect x="136" y="344" width="180" height="44" rx="14" fill="url(#woodA)" stroke="#4d2f18" stroke-width="8"/>
+  <circle cx="164" cy="396" r="34" fill="#2a3039" stroke="#0f1319" stroke-width="8"/>
+  <circle cx="288" cy="396" r="34" fill="#2a3039" stroke="#0f1319" stroke-width="8"/>
+  <circle cx="164" cy="396" r="10" fill="#687182"/>
+  <circle cx="288" cy="396" r="10" fill="#687182"/>
+
+  <ellipse cx="220" cy="270" rx="88" ry="70" fill="url(#metalA)" stroke="#0c1015" stroke-width="10"/>
+  <ellipse cx="200" cy="244" rx="44" ry="22" fill="url(#shineA)"/>
+
+  <path d="M256 236 L410 218 L410 318 L256 300 Z" fill="url(#metalA)" stroke="#0c1015" stroke-width="10"/>
+  <ellipse cx="410" cy="268" rx="42" ry="54" fill="#1d232d" stroke="#0c1015" stroke-width="10"/>
+  <ellipse cx="410" cy="268" rx="19" ry="25" fill="#0a0f15"/>
+
+  <ellipse cx="106" cy="402" rx="36" ry="11" fill="#8f6a44" stroke="#5f3f25" stroke-width="5"/>
+  <circle cx="90" cy="382" r="16" fill="#717b8a" stroke="#1b2129" stroke-width="5"/>
+  <circle cx="117" cy="396" r="15" fill="#66707f" stroke="#1b2129" stroke-width="5"/>
+  <circle cx="139" cy="382" r="14" fill="#7b8493" stroke="#1b2129" stroke-width="5"/>
+  <circle cx="84" cy="376" r="4" fill="#f2f7ff" opacity=".72"/>
+  <circle cx="111" cy="390" r="4" fill="#f2f7ff" opacity=".62"/>
+  <circle cx="133" cy="376" r="4" fill="#f2f7ff" opacity=".62"/>
+</svg>

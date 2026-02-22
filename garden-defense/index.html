@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Tower Defense Plus</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <div class="landingScreen" id="landingScreen">
+    <div class="landingCard">
+      <div class="landingDecor" aria-hidden="true">
+        <span class="landingMeadow"></span>
+        <span class="landingFlowerCluster">
+          <span class="landingFlowerGrass"></span>
+          <span class="landingStem st3"></span>
+          <span class="landingStem st4"></span>
+          <span class="landingStem st5"></span>
+          <span class="landingPetal p3"></span>
+          <span class="landingPetal p4"></span>
+          <span class="landingPetal p5"></span>
+        </span>
+        <span class="landingBugLeaf"></span>
+        <span class="landingBug">
+          <span class="landingBugSpot s1"></span>
+          <span class="landingBugSpot s2"></span>
+          <span class="landingBugSpot s3"></span>
+        </span>
+      </div>
+      <h1 class="landingTitle">Garden Guard</h1>
+      <p class="landingSub">Defend your vegetables from invading bugs across themed levels.</p>
+      <div class="landingActions">
+        <button id="landingStartBtn" type="button">Start New Game (Level 1)</button>
+        <button id="landingResumeBtn" type="button">Continue Last Run</button>
+        <button id="landingDeleteRunBtn" type="button">Delete Saved Run</button>
+        <button id="landingHowToBtn" type="button">How to Play</button>
+        <button id="landingTutorialBtn" type="button">Replay Quick Start</button>
+      </div>
+      <div class="landingContinueRow">
+        <select id="landingLevelSelect" title="Campaign Level"></select>
+        <button id="landingContinueBtn" type="button">Continue Campaign</button>
+      </div>
+      <div class="landingHint">Tip: Build towers, start waves early for +25% wave bonus, and bank leftover money at level end.</div>
+    </div>
+  </div>
+  <div class="shell">
+    <div class="top">
+      <div class="controls controlsMain">
+        <button id="nextLevelBtn" type="button">Next Level</button>
+        <button id="resetBtn" type="button" title="Restart this level" aria-label="Restart this level">&#x21bb; Restart Level</button>
+        <button id="hudMuteBtn" type="button" title="Quick mute audio" aria-label="Quick mute audio">Mute</button>
+      </div>
+    </div>
+
+    <div class="towerPanel">
+      <div class="towerInfo">
+        Selected: <span id="towerInfoName">Sprayer</span> | $<span id="towerInfoCost">25</span> | <span id="towerInfoDesc">Fan-spray aerosol damage.</span>
+      </div>
+      <div class="upgradeInfo" id="upgradeInfo">
+        <span id="upgradeTitle"></span>
+        <span id="upgradeCost"></span>
+        <span id="upgradeStats"></span>
+        <span class="upgradeActions">
+          <button id="upgradeSelectedBtn" class="miniBtn" type="button">Upgrade</button>
+          <button id="sellSelectedBtn" class="miniBtn" type="button">Sell</button>
+          <label for="towerTargetSelect">Target</label>
+          <select id="towerTargetSelect">
+            <option value="garden">Garden</option>
+            <option value="closest">Closest</option>
+          </select>
+        </span>
+      </div>
+    </div>
+    <div id="status" data-tone="warn" role="status" aria-live="polite"></div>
+    <div class="gameWrap">
+      <div class="towerStrip" id="towerStrip" aria-label="Tower selection">
+        <div id="sprayTowerBtn" class="towerGlyphBtn" role="button" tabindex="0" title="Sprayer ($25) [1]" aria-label="Sprayer ($25) [1]" aria-pressed="false">
+          <span class="towerHotkey">1</span>
+          <span class="towerIcon sprayIcon towerGlyph" aria-hidden="true"></span>
+          <span class="towerCost">$25</span>
+        </div>
+        <div id="glueTowerBtn" class="towerGlyphBtn" role="button" tabindex="0" title="Glue Pot ($35) [2]" aria-label="Glue Pot ($35) [2]" aria-pressed="false">
+          <span class="towerHotkey">2</span>
+          <span class="towerIcon glueIcon towerGlyph" aria-hidden="true"></span>
+          <span class="towerCost">$35</span>
+        </div>
+        <div id="hoseTowerBtn" class="towerGlyphBtn" role="button" tabindex="0" title="Hosepipe ($55) [3]" aria-label="Hosepipe ($55) [3]" aria-pressed="false">
+          <span class="towerHotkey">3</span>
+          <span class="towerIcon hoseIcon towerGlyph" aria-hidden="true"></span>
+          <span class="towerCost">$55</span>
+        </div>
+        <div id="saltTowerBtn" class="towerGlyphBtn saltGlyphBtn" role="button" tabindex="0" title="Salt Cannon ($60) [4]" aria-label="Salt Cannon ($60) [4]" aria-pressed="false">
+          <span class="towerHotkey">4</span>
+          <span class="saltPreview" aria-hidden="true"></span>
+          <span class="towerCost">$60</span>
+        </div>
+      </div>
+      <canvas id="game" width="900" height="420" aria-label="Game field"></canvas>
+      <div id="tutorialOverlay" class="tutorialOverlay" hidden>
+        <div class="tutorialCard">
+          <div class="tutorialTitle">Quick Start</div>
+          <div class="tutorialSub">Complete these steps:</div>
+          <div class="tutorialSteps">
+            <div id="tutorialStepPlace" class="tutorialStep"><span class="tutorialCheck" aria-hidden="true"></span>Place a tower</div>
+            <div id="tutorialStepWave" class="tutorialStep"><span class="tutorialCheck" aria-hidden="true"></span>Start Wave 1</div>
+            <div id="tutorialStepUpgrade" class="tutorialStep"><span class="tutorialCheck" aria-hidden="true"></span>Upgrade a tower</div>
+          </div>
+          <div class="tutorialActions">
+            <button id="tutorialSkipBtn" type="button">Skip</button>
+          </div>
+        </div>
+      </div>
+      <div class="gameTopOverlay">
+        <span class="overlayStat" title="Level">Level <span id="levelStat">1</span></span>
+        <span class="overlayStat statWithIcon" title="Money">
+          <span class="statIcon coinStackIcon" aria-hidden="true"></span>
+          <span id="money" class="moneyValue">100</span>
+        </span>
+        <span class="overlayStat bankStat" title="Bank">
+          <span class="statIcon bankIcon" aria-hidden="true"></span>
+          <span id="bank">0</span>
+        </span>
+        <span class="overlayStat statWithIcon" title="Vegetables Remaining">
+          <span class="statIcon vegIconGroup" aria-hidden="true">
+            <span class="miniCarrot"></span>
+            <span class="miniTomato"></span>
+            <span class="miniLettuce"></span>
+          </span>
+          <span id="lives" class="vegValue">20</span>
+        </span>
+        <span class="overlayStat compactMeta hiddenMeta" title="Active threats on field">Threats <span id="enemyCount">0</span></span>
+        <span class="overlayStat compactMeta" title="Next wave timing"><span id="nextWaveCountdown">Next: Ready</span></span>
+        <div class="waveTopHeader">
+          <div class="waveControl">
+            <span id="waveBanner" data-state="ready">Wave <span id="wave">0/10</span><span id="waveBannerTag">Ready</span></span>
+            <button id="startBtn" type="button">
+              <span id="startBtnGlyph" aria-hidden="true">GO</span>
+              <span id="startBtnMain">Start Wave</span>
+              <span id="startBtnSub">Tap when ready</span>
+            </button>
+            <button id="pauseBtn" type="button" title="Pause and return to landing" aria-label="Pause and return to landing">&#x23F8;</button>
+          </div>
+        </div>
+        <div id="waveCallout"></div>
+        <div id="waveSummary" class="waveSummary">
+          <div id="waveSummaryTitle" class="waveSummaryTitle"></div>
+          <div id="waveSummaryBody" class="waveSummaryBody"></div>
+        </div>
+      </div>
+    </div>
+    <div class="infoBar">
+      <div class="advancedWrap">
+        <details id="advancedPanel">
+          <summary>Game Settings</summary>
+          <div class="advancedControls">
+            <select id="difficultySelect" title="Difficulty">
+              <option value="easy">Easy</option>
+              <option value="normal" selected>Normal</option>
+              <option value="hard">Hard</option>
+            </select>
+            <select id="levelSelect" title="Level">
+              <option value="1" selected>Level 1</option>
+              <option value="2">Level 2</option>
+              <option value="3">Level 3</option>
+              <option value="4">Level 4</option>
+              <option value="5">Level 5</option>
+            </select>
+            <button id="targetModeBtn" type="button" title="Default target mode for newly placed towers" aria-label="Default target mode for newly placed towers">Default Target: Garden</button>
+            <button id="instructionsBtn" type="button">How to Play</button>
+            <label class="settingToggle" for="tutorialAutoToggle">
+              <input id="tutorialAutoToggle" type="checkbox" />
+              <span>Show Tutorial on Start</span>
+            </label>
+            <label class="settingToggle" for="audioEnabledToggle">
+              <input id="audioEnabledToggle" type="checkbox" />
+              <span>Audio On</span>
+            </label>
+            <label class="settingToggle" for="musicEnabledToggle">
+              <input id="musicEnabledToggle" type="checkbox" />
+              <span>Music On</span>
+            </label>
+            <label class="audioSlider" for="sfxVolumeRange">SFX
+              <input id="sfxVolumeRange" type="range" min="0" max="100" step="1" value="65" />
+            </label>
+            <label class="audioSlider" for="musicVolumeRange">Music
+              <input id="musicVolumeRange" type="range" min="0" max="100" step="1" value="30" />
+            </label>
+            <button id="audioTestBtn" type="button" title="Play a short sound check">Test Audio</button>
+            <span class="topStat hudMirror">Difficulty: <span id="difficultyStat">Normal</span></span>
+            <span class="topStat hudMirror" id="nextWaveStat">Next: Ready</span>
+            <span class="topStat hudMirror" id="bonusWaveStat">Bonus: None</span>
+          </div>
+          <div id="difficultyHint" class="difficultyHint" role="status" aria-live="polite">
+            Normal: balanced pacing and progression.
+          </div>
+        </details>
+      </div>
+      <details class="tipsPanel" id="helpPanel">
+        <summary>Help</summary>
+        <div class="tips">Left click: place/select tower | Right click: upgrade | Glue slows bugs.</div>
+      </details>
+
+      <details class="metaPanel" id="scoresPanel">
+        <summary>Scores</summary>
+        <div class="scorePanel" id="scorePanel">
+          <div class="scoreRow">
+            <input id="scoreNameInput" type="text" maxlength="18" placeholder="Your name" />
+            <button id="submitScoreBtn" type="button">Save Score</button>
+          </div>
+          <ol id="highscoreList"></ol>
+        </div>
+      </details>
+      <details class="metaPanel" id="badgesPanel">
+        <summary>Badges</summary>
+        <div class="badgePanel" id="badgePanel">
+          <div id="badgeList"></div>
+        </div>
+      </details>
+    </div>
+  </div>
+
+  <script src="./game.js"></script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
