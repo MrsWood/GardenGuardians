@@ -69,19 +69,19 @@
       <li>Use the <strong>Level selector</strong> to choose a map/level before starting.</li>
       <li>Survive all waves in the selected level to complete it.</li>
       <li>Your score is based on <strong>highest wave survived (cleared)</strong>.</li>
-      <li>Highscore tie-breaker: higher <strong>unspent money</strong> wins.</li>
+      <li>Highscore tie-breaker: higher <strong>Bank</strong> wins.</li>
+      <li>At level completion, leftover money is deposited into your <strong>Bank</strong>.</li>
     </ul>
 
     <h2>Controls</h2>
     <ul>
       <li><code>Left Click</code> empty grass: place selected tower.</li>
-      <li><code>Left Click</code> tower: select tower and show its range.</li>
-      <li><code>Right Click</code> tower: upgrade tower.</li>
-      <li><code>Upgrade Panel</code>: use <strong>Upgrade</strong>, <strong>Sell</strong>, and per-tower <strong>Target</strong> controls.</li>
+      <li><code>Left Click</code> tower: select tower, show range, and open quick actions.</li>
+      <li><code>Right Click</code> tower: desktop shortcut to upgrade.</li>
+      <li><code>Tower Quick Actions</code>: <strong>Upgrade</strong> is primary. <strong>Sell</strong> requires a second confirmation tap/click.</li>
       <li><code>Level</code>: choose the level/map before starting a run.</li>
       <li><code>Difficulty</code>: choose <strong>Easy / Normal / Hard</strong> in the top controls.</li>
       <li><code>Start Wave</code>: begin a new wave immediately. Starting early during countdown gives a <strong>+25%</strong> early-start cash bonus (based on wave-clear bonus).</li>
-      <li><code>Target: Garden / Closest</code>: switches spray targeting mode.</li>
     </ul>
     <div class="note">Waves auto-start 10 seconds after a clear if you do not start one manually. Starting early awards a <strong>+25%</strong> early-start cash bonus (based on wave-clear bonus).</div>
 
@@ -98,10 +98,7 @@
         <ul>
           <li>Fires a fan-shaped aerosol burst.</li>
           <li>Rotates to track target direction.</li>
-          <li>Targeting modes:
-            <br />- <code>Closest</code> enemy in range
-            <br />- <code>Closest to Garden</code> in range
-          </li>
+          <li>Good all-round damage tower for early and mid waves.</li>
         </ul>
       </div>
       <div class="card">
@@ -113,6 +110,22 @@
           <li>Some enemies have glue resistance, so slows are partially reduced.</li>
         </ul>
       </div>
+      <div class="card">
+        <strong>Hosepipe Tower ($55)</strong>
+        <ul>
+          <li>Fires a piercing water beam in a straight line.</li>
+          <li>Can damage multiple enemies caught in its beam path.</li>
+          <li>Upgrades increase beam damage, range, and beam width.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <strong>Salt Cannon Tower ($60)</strong>
+        <ul>
+          <li>Heavy single-target salt shot.</li>
+          <li>Best for tougher enemies and boss support control.</li>
+          <li>Upgrades scale damage and rate efficiently.</li>
+        </ul>
+      </div>
     </div>
 
     <h2>Tower Stats By Level</h2>
@@ -120,40 +133,46 @@
       <div class="card">
         <strong>Sprayer (Levels 1-6)</strong>
         <ul>
-          <li>L1: Damage 10, Range 120, Fire Rate 46</li>
-          <li>L2: Damage 15, Range 128, Fire Rate 42</li>
-          <li>L3: Damage 20, Range 136, Fire Rate 38</li>
-          <li>L4: Damage 25, Range 144, Fire Rate 34</li>
-          <li>L5: Damage 30, Range 152, Fire Rate 30</li>
-          <li>L6: Damage 35, Range 160, Fire Rate 26</li>
+          <li>L1 base: Damage 11, Range 124, Fire Rate 44</li>
+          <li>Per upgrade: +5 Damage, +9 Range, Fire Rate -4 (to min 16)</li>
         </ul>
       </div>
       <div class="card">
         <strong>Glue Pot (Levels 1-6)</strong>
         <ul>
-          <li>L1: Range 135, Fire Rate 74, Slow 0.62, Trap Radius 24, Trap Life 185</li>
-          <li>L2: Range 145, Fire Rate 69, Slow 0.57, Trap Radius 26, Trap Life 211</li>
-          <li>L3: Range 155, Fire Rate 64, Slow 0.52, Trap Radius 28, Trap Life 237</li>
-          <li>L4: Range 165, Fire Rate 59, Slow 0.47, Trap Radius 30, Trap Life 263</li>
-          <li>L5: Range 175, Fire Rate 54, Slow 0.42, Trap Radius 32, Trap Life 289</li>
-          <li>L6: Range 185, Fire Rate 49, Slow 0.37, Trap Radius 34, Trap Life 315</li>
+          <li>L1 base: Range 138, Fire Rate 72, Slow 0.60, Radius 25, Life 190</li>
+          <li>Per upgrade: +9 Range, Fire Rate -4 (to min 34), Slow -0.045 (to min 0.38), +2 Radius, +24 Life</li>
+        </ul>
+      </div>
+      <div class="card">
+        <strong>Hosepipe (Levels 1-6)</strong>
+        <ul>
+          <li>L1 base: Damage 12, Range 148, Fire Rate 56, Beam Width 7</li>
+          <li>Per upgrade: +5 Damage, +9 Range, Fire Rate -4 (to min 26), +0.5 Beam Width</li>
+        </ul>
+      </div>
+      <div class="card">
+        <strong>Salt Cannon (Levels 1-6)</strong>
+        <ul>
+          <li>L1 base: Damage 17, Range 154, Fire Rate 34</li>
+          <li>Per upgrade: +6 Damage, +8 Range, Fire Rate -3 (to min 20)</li>
         </ul>
       </div>
     </div>
 
     <h2>Attackers</h2>
     <div class="grid">
-      <div class="card"><strong>Aphid (Scout)</strong><br />Fast, low HP.</div>
-      <div class="card"><strong>Praying Mantis (Hunter)</strong><br />Balanced threat.</div>
-      <div class="card"><strong>Locust (Swarm)</strong><br />Quick, moderate HP.</div>
-      <div class="card"><strong>Ladybug (Tank)</strong><br />High HP and armor.</div>
-      <div class="card"><strong>Caterpillar (Bulwark)</strong><br />Glue-resistant and durable.</div>
-      <div class="card"><strong>Gate Crasher (Boss)</strong><br />Appears every 5th wave with very high HP, armor, and glue resistance.</div>
+      <div class="card"><strong>Aphid (Scout)</strong><br />Fast, light pressure bug with low HP.</div>
+      <div class="card"><strong>Locust (Runner)</strong><br />Fastest attacker, fragile but can slip through.</div>
+      <div class="card"><strong>Praying Mantis (Jammer)</strong><br />Emits interference that slows nearby tower fire rate.</div>
+      <div class="card"><strong>Caterpillar (Blocker)</strong><br />Slow, durable, and glue-resistant.</div>
+      <div class="card"><strong>Ladybug (Tank)</strong><br />Armored frontline bug with high durability.</div>
+      <div class="card"><strong>Gate Crasher (Boss)</strong><br />Appears on boss waves with very high HP, armor, and glue resistance.</div>
     </div>
 
     <h2>Boss Waves</h2>
     <ul>
-      <li>Boss wave frequency depends on difficulty (Easy: 6, Normal: 5, Hard: 4).</li>
+      <li>Boss wave frequency depends on difficulty (Easy: 7, Normal: 5, Hard: 3).</li>
       <li>The <strong>Gate Crasher</strong> spawns with support enemies on one path.</li>
       <li>HUD marks boss waves and wave-clear text confirms boss defeat.</li>
       <li>The <strong>final wave of each level</strong> has larger attackers with <strong>100% more strength</strong>.</li>
@@ -186,6 +205,7 @@
     <ul>
       <li>At game over, if your run qualifies for top 10, the highscore panel appears.</li>
       <li>Enter your name and submit.</li>
+      <li>Scores rank by highest wave cleared, then by higher Bank value.</li>
       <li>Stored locally in your browser using <code>localStorage</code>.</li>
     </ul>
 

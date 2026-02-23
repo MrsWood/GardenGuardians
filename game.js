@@ -5,7 +5,7 @@ const canvas = document.getElementById("game");
     const towerRadius = 11;
     const enemyRadius = 11;
     const noBuildPadding = 10;
-    const allowDirectLevelSelect = true;
+    const allowDirectLevelSelect = false;
     const levelConfigs = {
       1: {
         name: "Garden Lawn",
@@ -13,7 +13,6 @@ const canvas = document.getElementById("game");
         terrain: "lawn",
         flowerTheme: "mixed",
         mergeGate: false,
-        startMoneyMul: 1,
         waveCountMul: 0.95,
         enemyHpMul: 0.92,
         enemySpeedMul: 0.94,
@@ -65,7 +64,6 @@ const canvas = document.getElementById("game");
         terrain: "prairie",
         flowerTheme: "susan",
         mergeGate: true,
-        startMoneyMul: 0.97,
         waveCountMul: 1,
         enemyHpMul: 1,
         enemySpeedMul: 1,
@@ -115,7 +113,6 @@ const canvas = document.getElementById("game");
         terrain: "desert",
         flowerTheme: "cactus",
         mergeGate: false,
-        startMoneyMul: 0.95,
         waveCountMul: 1.08,
         enemyHpMul: 1.1,
         enemySpeedMul: 1.08,
@@ -168,7 +165,6 @@ const canvas = document.getElementById("game");
         terrain: "prairie",
         flowerTheme: "sunflower",
         mergeGate: false,
-        startMoneyMul: 0.92,
         waveCountMul: 1.18,
         enemyHpMul: 1.2,
         enemySpeedMul: 1.14,
@@ -215,7 +211,6 @@ const canvas = document.getElementById("game");
         terrain: "snow",
         flowerTheme: "christmas",
         mergeGate: false,
-        startMoneyMul: 0.89,
         waveCountMul: 1.25,
         enemyHpMul: 1.28,
         enemySpeedMul: 1.16,
@@ -277,7 +272,6 @@ const canvas = document.getElementById("game");
         terrain: "lawn",
         flowerTheme: "topiary",
         mergeGate: true,
-        startMoneyMul: 0.86,
         waveCountMul: 1.34,
         enemyHpMul: 1.36,
         enemySpeedMul: 1.18,
@@ -390,15 +384,6 @@ const canvas = document.getElementById("game");
     const submitScoreBtn = document.getElementById("submitScoreBtn");
     const highscoreListEl = document.getElementById("highscoreList");
     const badgeListEl = document.getElementById("badgeList");
-    const towerInfoNameEl = document.getElementById("towerInfoName");
-    const towerInfoCostEl = document.getElementById("towerInfoCost");
-    const towerInfoDescEl = document.getElementById("towerInfoDesc");
-    const upgradeInfoEl = document.getElementById("upgradeInfo");
-    const upgradeTitleEl = document.getElementById("upgradeTitle");
-    const upgradeCostEl = document.getElementById("upgradeCost");
-    const upgradeStatsEl = document.getElementById("upgradeStats");
-    const upgradeSelectedBtn = document.getElementById("upgradeSelectedBtn");
-    const sellSelectedBtn = document.getElementById("sellSelectedBtn");
     const sprayTowerBtn = document.getElementById("sprayTowerBtn");
     const glueTowerBtn = document.getElementById("glueTowerBtn");
     const hoseTowerBtn = document.getElementById("hoseTowerBtn");
@@ -430,6 +415,8 @@ const canvas = document.getElementById("game");
     const landingLevelSelect = document.getElementById("landingLevelSelect");
     const landingContinueBtn = document.getElementById("landingContinueBtn");
     const landingHintEl = document.querySelector(".landingHint");
+    const roleLegendEl = document.getElementById("roleLegend");
+    const roleLegendItems = roleLegendEl ? Array.from(roleLegendEl.querySelectorAll(".roleLegendItem")) : [];
     const shellEl = document.querySelector(".shell");
     const startBtn = document.getElementById("startBtn");
     const startBtnGlyphEl = document.getElementById("startBtnGlyph");
@@ -453,6 +440,8 @@ const canvas = document.getElementById("game");
     const towerFloatSellValEl = document.getElementById("towerFloatSellVal");
     const towerFloatUpgradeValEl = document.getElementById("towerFloatUpgradeVal");
     const isCoarsePointer = (window.matchMedia && window.matchMedia("(pointer: coarse)").matches) || (navigator.maxTouchPoints || 0) > 0;
+    const pageParams = new URLSearchParams(window.location.search || "");
+    const smokeMode = pageParams.get("smoke") === "1";
 
     let money;
     let bank;
@@ -516,6 +505,7 @@ const canvas = document.getElementById("game");
     let profileData;
     let tutorialProgress;
     let runtimeCrashed;
+    let smokeHarnessRunning;
     let audioCtx;
     let audioMasterGain;
     let audioSfxGain;
@@ -1366,9 +1356,13 @@ const canvas = document.getElementById("game");
       }
     }
 
+    function canSubmitScoreForCurrentRun() {
+      return !!(gameOver || (levelComplete && !nextLevelPending));
+    }
+
     function submitHighscore() {
       const name = (scoreNameInputEl.value || "").trim();
-      if (!gameOver) {
+      if (!canSubmitScoreForCurrentRun()) {
         setStatus("Finish the run first, then submit your score.", "warn");
         return;
       }
@@ -1586,9 +1580,7 @@ const canvas = document.getElementById("game");
 
     function resetGame(keepBank = false) {
       const profile = getDifficultyProfile();
-      const lvl = getCurrentLevelConfig();
-      const startMoneyMul = Number.isFinite(lvl.startMoneyMul) ? lvl.startMoneyMul : 1;
-      money = Math.max(20, Math.round(profile.startMoney * startMoneyMul));
+      money = Math.max(20, Math.round(profile.startMoney));
       if (!keepBank) bank = 0;
       wave = 0;
       enemies = [];
@@ -1736,7 +1728,7 @@ const canvas = document.getElementById("game");
       levelNumber = target;
       if (levelSelect) levelSelect.value = String(levelNumber);
       if (landingLevelSelect) landingLevelSelect.value = String(levelNumber);
-      resetGame(false);
+      resetGame(true);
       beginGameFromLanding(false);
       if (!tutorialProgress?.active) setStatus(`Campaign level selected: Level ${levelNumber} (${getCurrentLevelConfig().name}).`, "good");
     }
@@ -1998,7 +1990,6 @@ const canvas = document.getElementById("game");
           if (startBtnMainEl) startBtnMainEl.textContent = "Start Wave";
         }
       }
-      renderUpgradePanel();
       renderFloatingTowerCard();
       renderNextWavePreview();
       updatePlacementUndoUi();
@@ -2063,6 +2054,100 @@ const canvas = document.getElementById("game");
       uiFadeTimer = setTimeout(() => {
         shellEl.classList.add("uiQuiet");
       }, 3400);
+    }
+
+    function delayMs(ms) {
+      return new Promise(resolve => setTimeout(resolve, Math.max(0, Number(ms) || 0)));
+    }
+
+    async function runSmokeHarness() {
+      if (!smokeMode || smokeHarnessRunning) return;
+      smokeHarnessRunning = true;
+      const checks = [];
+      const startedAt = Date.now();
+      const record = (name, pass, detail = "") => {
+        checks.push({ name, pass: !!pass, detail });
+      };
+      const report = (ok, errMsg = "") => {
+        const result = {
+          ok,
+          startedAt,
+          endedAt: Date.now(),
+          checks,
+          error: errMsg || "",
+          snapshot: {
+            level: levelNumber,
+            wave,
+            money,
+            enemies: enemies.length,
+            activeSpawners,
+            runtimeCrashed: !!runtimeCrashed
+          }
+        };
+        window.__gardenSmokeResult = result;
+        if (ok) setStatus("Smoke harness passed.", "good");
+        else setStatus("Smoke harness failed. Check console and window.__gardenSmokeResult.", "danger");
+        try {
+          const prefix = ok ? "[SMOKE PASS]" : "[SMOKE FAIL]";
+          console.log(prefix, result);
+          if (!ok) console.error(prefix, result);
+        } catch {
+          // ignore logging failures
+        }
+      };
+      try {
+        record("DOM canvas exists", !!canvas, !!canvas ? "" : "Missing #game canvas");
+        record("Core controls exist", !!landingStartBtn && !!startBtn && !!sprayTowerBtn, "Missing one or more required controls");
+
+        startNewGameFromLanding();
+        await delayMs(60);
+        record("Game started from landing", gameStarted && (landingScreenEl?.style.display === "none"), `gameStarted=${gameStarted}`);
+
+        setSelectedTowerType("spray");
+        await delayMs(20);
+        const grassPoint = getRandomGrassPoint();
+        record("Found buildable grass point", !!grassPoint, grassPoint ? `${Math.round(grassPoint.x)},${Math.round(grassPoint.y)}` : "No valid grass point");
+        let placed = false;
+        const beforeMoney = money;
+        if (grassPoint) placed = placeTower(grassPoint.x, grassPoint.y);
+        record("Place tower", placed, placed ? "" : "placeTower returned false");
+        record("Money decreases after placement", placed ? money < beforeMoney : false, `before=${beforeMoney}, after=${money}`);
+
+        const waveBefore = wave;
+        startWave();
+        await delayMs(160);
+        record("Wave increments", wave === waveBefore + 1, `before=${waveBefore}, after=${wave}`);
+        await delayMs(1300);
+        record("Enemies spawn or spawner active", enemies.length > 0 || activeSpawners > 0, `enemies=${enemies.length}, spawners=${activeSpawners}`);
+        await delayMs(260);
+        record("Runtime stable", !runtimeCrashed, runtimeCrashed ? "runtimeCrashed=true" : "");
+
+        const ok = checks.every(c => c.pass);
+        report(ok);
+      } catch (err) {
+        const message = err && err.message ? err.message : "Unknown smoke harness error";
+        record("Unhandled smoke harness exception", false, message);
+        report(false, message);
+      } finally {
+        smokeHarnessRunning = false;
+      }
+    }
+
+    function clearRoleLegendTips(except = null) {
+      for (const item of roleLegendItems) {
+        if (except && item === except) continue;
+        item.classList.remove("showTip");
+        item.setAttribute("aria-expanded", "false");
+      }
+    }
+
+    function toggleRoleLegendTip(item) {
+      if (!item) return;
+      const shouldShow = !item.classList.contains("showTip");
+      clearRoleLegendTips(item);
+      item.classList.toggle("showTip", shouldShow);
+      item.setAttribute("aria-expanded", shouldShow ? "true" : "false");
+      markUiInteraction();
     }
 
     function showWaveCallout(text, mode = "normal", duration = 2600) {
@@ -2424,86 +2509,6 @@ const canvas = document.getElementById("game");
       };
     }
 
-    function renderUpgradePanel() {
-      if (!upgradeInfoEl) return;
-      const selected = towers.find(t => t.id === selectedTowerId);
-      if (!selected) {
-        upgradeTitleEl.textContent = "";
-        upgradeCostEl.textContent = "";
-        upgradeCostEl.classList.remove("locked");
-        upgradeStatsEl.textContent = "Right-click a tower to upgrade.";
-        upgradeSelectedBtn.textContent = "Upgrade";
-        sellSelectedBtn.textContent = "Sell";
-        upgradeSelectedBtn.disabled = true;
-        sellSelectedBtn.disabled = true;
-        return;
-      }
-
-      const name = getTowerDisplayName(selected.type);
-      upgradeTitleEl.textContent = `${name} L${selected.level}`;
-      sellSelectedBtn.disabled = false;
-      const sellValue = getTowerSellValue(selected);
-      sellSelectedBtn.textContent = `Sell ($${sellValue})`;
-      if (selected.level >= 6) {
-        upgradeCostEl.textContent = "MAX LEVEL";
-        upgradeCostEl.classList.remove("locked");
-        upgradeSelectedBtn.disabled = true;
-        if (selected.type === "glue") {
-          const slowPct = Math.round((1 - selected.slowMultiplier) * 100);
-          upgradeStatsEl.textContent = `Range ${Math.round(selected.range)} | Rate ${selected.fireRate} | Slow ${slowPct}% | Radius ${selected.trapRadius} | Life ${selected.trapLife}`;
-        } else if (selected.type === "hose") {
-          const dps = (selected.damage / Math.max(1, selected.fireRate / 60)).toFixed(1);
-          upgradeStatsEl.textContent = `Beam ${selected.damage} | Range ${Math.round(selected.range)} | Rate ${selected.fireRate} | Width ${selected.beamWidth.toFixed(1)} | DPS ${dps}`;
-        } else if (selected.type === "salt") {
-          const dps = (selected.damage / Math.max(1, selected.fireRate / 60)).toFixed(1);
-          upgradeStatsEl.textContent = `Shot ${selected.damage} | Range ${Math.round(selected.range)} | Rate ${selected.fireRate} | DPS ${dps}`;
-        } else {
-          const dps = ((selected.damage * 0.34 * 6) / Math.max(1, selected.fireRate / 60)).toFixed(1);
-          upgradeStatsEl.textContent = `Damage ${selected.damage} | Range ${Math.round(selected.range)} | Rate ${selected.fireRate} | DPS ${dps}`;
-        }
-        return;
-      }
-
-      const cost = getUpgradeCost(selected);
-      const canAfford = money >= cost;
-      upgradeCostEl.textContent = `Upgrade: $${cost}`;
-      upgradeCostEl.classList.toggle("locked", !canAfford);
-      upgradeSelectedBtn.textContent = `Upgrade ($${cost})`;
-      upgradeSelectedBtn.disabled = !canAfford;
-
-      if (selected.type === "glue") {
-        const nextRange = selected.range + 9;
-        const nextRate = Math.max(34, selected.fireRate - 4);
-        const currentSlowPct = Math.round((1 - selected.slowMultiplier) * 100);
-        const nextSlowPct = Math.round((1 - Math.max(0.38, selected.slowMultiplier - 0.045)) * 100);
-        const nextRadius = selected.trapRadius + 2;
-        const nextLife = selected.trapLife + 24;
-        upgradeStatsEl.textContent = `Range ${Math.round(selected.range)} -> ${Math.round(nextRange)} | Rate ${selected.fireRate} -> ${nextRate} | Slow ${currentSlowPct}% -> ${nextSlowPct}% | Radius ${selected.trapRadius} -> ${nextRadius} | Life ${selected.trapLife} -> ${nextLife}`;
-      } else if (selected.type === "hose") {
-        const nextDamage = selected.damage + 5;
-        const nextRange = selected.range + 9;
-        const nextRate = Math.max(26, selected.fireRate - 4);
-        const nextWidth = (selected.beamWidth + 0.5).toFixed(1);
-        const currentDps = (selected.damage / Math.max(1, selected.fireRate / 60)).toFixed(1);
-        const nextDps = (nextDamage / Math.max(1, nextRate / 60)).toFixed(1);
-        upgradeStatsEl.textContent = `Beam ${selected.damage} -> ${nextDamage} | Range ${Math.round(selected.range)} -> ${Math.round(nextRange)} | Rate ${selected.fireRate} -> ${nextRate} | Width ${selected.beamWidth.toFixed(1)} -> ${nextWidth} | DPS ${currentDps} -> ${nextDps}`;
-      } else if (selected.type === "salt") {
-        const nextDamage = selected.damage + 6;
-        const nextRange = selected.range + 8;
-        const nextRate = Math.max(20, selected.fireRate - 3);
-        const currentDps = (selected.damage / Math.max(1, selected.fireRate / 60)).toFixed(1);
-        const nextDps = (nextDamage / Math.max(1, nextRate / 60)).toFixed(1);
-        upgradeStatsEl.textContent = `Shot ${selected.damage} -> ${nextDamage} | Range ${Math.round(selected.range)} -> ${Math.round(nextRange)} | Rate ${selected.fireRate} -> ${nextRate} | DPS ${currentDps} -> ${nextDps}`;
-      } else {
-        const nextDamage = selected.damage + 5;
-        const nextRange = selected.range + 9;
-        const nextRate = Math.max(16, selected.fireRate - 4);
-        const currentDps = ((selected.damage * 0.34 * 6) / Math.max(1, selected.fireRate / 60)).toFixed(1);
-        const nextDps = ((nextDamage * 0.34 * 6) / Math.max(1, nextRate / 60)).toFixed(1);
-        upgradeStatsEl.textContent = `Damage ${selected.damage} -> ${nextDamage} | Range ${Math.round(selected.range)} -> ${Math.round(nextRange)} | Rate ${selected.fireRate} -> ${nextRate} | DPS ${currentDps} -> ${nextDps}`;
-      }
-    }
-
     function setTowerFloatCardPosition(left, top) {
       if (!towerFloatCardEl) return;
       const wrap = document.querySelector(".gameWrap");
@@ -2637,10 +2642,6 @@ const canvas = document.getElementById("game");
       if (glueTowerBtn) glueTowerBtn.setAttribute("aria-pressed", selectedTowerType === "glue" ? "true" : "false");
       if (hoseTowerBtn) hoseTowerBtn.setAttribute("aria-pressed", selectedTowerType === "hose" ? "true" : "false");
       if (saltTowerBtn) saltTowerBtn.setAttribute("aria-pressed", selectedTowerType === "salt" ? "true" : "false");
-      const info = towerDetails[selectedTowerType];
-      if (towerInfoNameEl) towerInfoNameEl.textContent = info.name;
-      if (towerInfoCostEl) towerInfoCostEl.textContent = towerCosts[selectedTowerType];
-      if (towerInfoDescEl) towerInfoDescEl.textContent = info.desc;
       syncTowerAffordability();
     }
 
@@ -4008,7 +4009,17 @@ const canvas = document.getElementById("game");
           if (nextLevelPending) {
             setStatus(`Level ${levelNumber} complete. Banked $${levelBankDeposit}. Bank total: $${bank}. Badge earned. Level ${nextLevelPending} unlocked. Press Start to continue.`, "good");
           } else {
-            setStatus(`Level ${levelNumber} complete. Banked $${levelBankDeposit}. Final bank: $${bank}. You defended all ${lvl.waves} waves.`, "good");
+            lastRunWave = wave;
+            lastRunMoney = money;
+            lastRunBank = bank;
+            const rank = getProspectiveRank(lastRunWave, lastRunBank);
+            if (rank > 0) {
+              scorePanelEl.style.display = "block";
+              if (scoresPanelEl) scoresPanelEl.open = true;
+              setStatus(`Level ${levelNumber} complete. Final bank: $${bank}. Top ${rank} run! Enter your name to save score.`, "good");
+            } else {
+              setStatus(`Level ${levelNumber} complete. Banked $${levelBankDeposit}. Final bank: $${bank}. You defended all ${lvl.waves} waves.`, "good");
+            }
           }
           lastClearedWave = wave;
           populateLevelSelect();
@@ -6017,13 +6028,13 @@ const canvas = document.getElementById("game");
     }
 
     function getEnemyLabel(type) {
-      if (type === "aphid") return "APHID";
-      if (type === "mantis") return "MANTIS";
-      if (type === "locust") return "LOCUST";
-      if (type === "ladybug") return "LADYBUG";
-      if (type === "caterpillar") return "CATERPILLAR";
-      if (type === "gatecrasher") return "GATE CRASHER";
-      return "BUG";
+      if (type === "aphid") return "Aphid";
+      if (type === "mantis") return "Praying Mantis";
+      if (type === "locust") return "Locust";
+      if (type === "ladybug") return "Ladybug";
+      if (type === "caterpillar") return "Caterpillar";
+      if (type === "gatecrasher") return "Gate Crasher";
+      return "Bug";
     }
 
     function drawEnemyTypeBadge(type, x, y, color) {
@@ -6153,6 +6164,16 @@ const canvas = document.getElementById("game");
         ctx.lineTo(-1.8, -1.2);
         ctx.closePath();
         ctx.fill();
+      } else if (kind === "tank") {
+        ctx.beginPath();
+        ctx.arc(0, 0, 2.05, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(0, -2.05);
+        ctx.lineTo(0, 2.05);
+        ctx.moveTo(-2.05, 0);
+        ctx.lineTo(2.05, 0);
+        ctx.stroke();
       } else if (kind === "boss") {
         ctx.beginPath();
         ctx.moveTo(-2.4, 1.6);
@@ -6203,6 +6224,7 @@ const canvas = document.getElementById("game");
       if (enemy.role === "Runner") return { t: "runner", c: "#3c8fe6" };
       if (enemy.role === "Jammer") return { t: "jammer", c: "#7d78eb" };
       if (enemy.role === "Blocker") return { t: "blocker", c: "#607484" };
+      if (enemy.role === "Tank") return { t: "tank", c: "#de5656" };
       return null;
     }
 
@@ -6639,11 +6661,29 @@ const canvas = document.getElementById("game");
       hideTutorialProgress(true);
       setStatus("Quick start skipped. You can replay it from landing.", "warn");
     });
-    upgradeSelectedBtn.addEventListener("click", () => {
-      if (gameOver || levelComplete) return;
-      const selected = towers.find(t => t.id === selectedTowerId);
-      upgradeTower(selected);
-    });
+    if (roleLegendItems.length > 0) {
+      for (const item of roleLegendItems) {
+        item.setAttribute("role", "button");
+        item.setAttribute("aria-expanded", "false");
+        item.addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          toggleRoleLegendTip(item);
+        });
+        item.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            toggleRoleLegendTip(item);
+          } else if (e.key === "Escape") {
+            clearRoleLegendTips();
+          }
+        });
+      }
+      document.addEventListener("pointerdown", (e) => {
+        if (!roleLegendEl || roleLegendEl.contains(e.target)) return;
+        clearRoleLegendTips();
+      }, { passive: true });
+    }
     if (towerFloatUpgradeBtn) {
       towerFloatUpgradeBtn.addEventListener("click", () => {
         if (gameOver || levelComplete) return;
@@ -6651,10 +6691,6 @@ const canvas = document.getElementById("game");
         upgradeTower(selected);
       });
     }
-    sellSelectedBtn.addEventListener("click", () => {
-      if (gameOver || levelComplete) return;
-      requestSellTowerConfirm(selectedTowerId);
-    });
     if (towerFloatSellBtn) {
       towerFloatSellBtn.addEventListener("click", () => {
         if (gameOver || levelComplete) return;
@@ -6711,4 +6747,8 @@ const canvas = document.getElementById("game");
     document.addEventListener("touchstart", unlockAudioFromGesture, { passive: true });
     initAutosave();
     gameLoop();
-
+    if (smokeMode) {
+      setTimeout(() => {
+        runSmokeHarness();
+      }, 220);
+    }

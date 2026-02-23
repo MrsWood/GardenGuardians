@@ -12,6 +12,16 @@ Live game:
 
 Open `index.html` in a browser.
 
+## Smoke Test Harness
+
+Run a quick automated sanity check by opening:
+
+- `index.html?smoke=1`
+
+The game runs a lightweight smoke pass (load, start, place tower, start wave, enemy spawn, runtime stability) and writes results to:
+
+- `window.__gardenSmokeResult`
+
 ## Publish with GitHub Pages (Recommended)
 
 1. Create a new GitHub repository.
