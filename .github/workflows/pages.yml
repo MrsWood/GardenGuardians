@@ -15,7 +15,63 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Syntax check
+        run: node --check game.js
+
+      - name: Install Playwright
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+
+      - name: Run browser smoke harness
+        shell: bash
+        run: |
+          python3 -m http.server 4173 >/tmp/smoke-http.log 2>&1 &
+          SERVER_PID=$!
+          trap "kill $SERVER_PID" EXIT
+
+          node - <<'NODE'
+          const { chromium } = require("playwright");
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            const page = await browser.newPage({ viewport: { width: 1366, height: 768 } });
+            page.on("console", msg => console.log(`[browser:${msg.type()}] ${msg.text()}`));
+
+            await page.goto("http://127.0.0.1:4173/index.html?smoke=1", { waitUntil: "load", timeout: 30000 });
+            await page.waitForFunction(
+              () => window.__gardenSmokeResult && typeof window.__gardenSmokeResult.ok === "boolean",
+              { timeout: 30000 }
+            );
+
+            const result = await page.evaluate(() => window.__gardenSmokeResult);
+            console.log("Smoke result:", JSON.stringify(result, null, 2));
+
+            await browser.close();
+
+            if (!result || !result.ok) {
+              process.exit(1);
+            }
+          })().catch(err => {
+            console.error("Smoke harness execution failed:", err);
+            process.exit(1);
+          });
+          NODE
+
   deploy:
+    needs: smoke
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
