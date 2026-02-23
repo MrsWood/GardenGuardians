@@ -2,7 +2,7 @@
 <html>
 <head>
   <title>Tower Defense Plus - BUILD D 20260222d</title>
-  <link rel="stylesheet" href="./style.css?v=20260222d">
+  <link rel="stylesheet" href="./style.css?v=20260222aa">
 </head>
 <body>
   <div id="buildMarker">BUILD D · 20260222d</div>
@@ -55,21 +55,16 @@
       <div class="towerInfo">
         Selected: <span id="towerInfoName">Sprayer</span> | $<span id="towerInfoCost">25</span> | <span id="towerInfoDesc">Fan-spray aerosol damage.</span>
       </div>
-      <div class="upgradeInfo" id="upgradeInfo">
-        <span id="upgradeTitle"></span>
-        <span id="upgradeCost"></span>
-        <span id="upgradeStats"></span>
-        <span class="upgradeActions">
-          <button id="upgradeSelectedBtn" class="miniBtn" type="button">Upgrade</button>
-          <button id="sellSelectedBtn" class="miniBtn" type="button">Sell</button>
-          <label for="towerTargetSelect">Target</label>
-          <select id="towerTargetSelect">
-            <option value="garden">Garden</option>
-            <option value="closest">Closest</option>
-          </select>
-        </span>
+        <div class="upgradeInfo" id="upgradeInfo">
+          <span id="upgradeTitle"></span>
+          <span id="upgradeCost"></span>
+          <span id="upgradeStats"></span>
+          <span class="upgradeActions">
+            <button id="upgradeSelectedBtn" class="miniBtn" type="button">Upgrade</button>
+            <button id="sellSelectedBtn" class="miniBtn" type="button">Sell</button>
+          </span>
+        </div>
       </div>
-    </div>
     <div id="status" data-tone="warn" role="status" aria-live="polite"></div>
     <div class="gameWrap">
       <canvas id="game" width="900" height="420" aria-label="Game field"></canvas>
@@ -92,18 +87,15 @@
         </div>
       </div>
       <div id="towerFloatCard" class="towerFloatCard" hidden>
-        <div class="towerFloatTitle" id="towerFloatTitle">Tower</div>
-        <div class="towerFloatStats" id="towerFloatStats">Stats</div>
-        <div class="towerFloatActions">
-          <button id="towerFloatUpgradeBtn" type="button">Upgrade</button>
-          <button id="towerFloatSellBtn" type="button">Sell</button>
-        </div>
-        <div class="towerFloatTargetRow">
-          <label for="towerFloatTargetSelect">Target</label>
-          <select id="towerFloatTargetSelect">
-            <option value="garden">Garden</option>
-            <option value="closest">Closest</option>
-          </select>
+        <div class="towerFloatIconRow" aria-label="Tower quick actions">
+          <button id="towerFloatSellBtn" class="towerFloatIconBtn" type="button" title="Sell tower">
+            <span class="towerFloatGlyph" aria-hidden="true">$</span>
+            <span id="towerFloatSellVal">0</span>
+          </button>
+          <button id="towerFloatUpgradeBtn" class="towerFloatIconBtn" type="button" title="Upgrade tower">
+            <span class="towerFloatGlyph" aria-hidden="true">&#x2191;</span>
+            <span id="towerFloatUpgradeVal">$0</span>
+          </button>
         </div>
       </div>
       <div id="tutorialOverlay" class="tutorialOverlay" hidden>
@@ -139,14 +131,12 @@
           <span id="lives" class="vegValue">20</span>
         </span>
         <span class="overlayStat compactMeta hiddenMeta" title="Active threats on field">Threats <span id="enemyCount">0</span></span>
-        <span class="overlayStat compactMeta" title="Next wave timing"><span id="nextWaveCountdown">Next: Ready</span></span>
         <div class="waveTopHeader">
           <div class="waveControl">
             <span id="waveBanner" data-state="ready">Wave <span id="wave">0/10</span><span id="waveBannerTag">Ready</span></span>
             <button id="startBtn" type="button">
               <span id="startBtnGlyph" aria-hidden="true">GO</span>
               <span id="startBtnMain">Start Wave</span>
-              <span id="startBtnSub">Tap when ready</span>
             </button>
             <button id="pauseBtn" type="button" title="Pause and return to landing" aria-label="Pause and return to landing">&#x23F8;</button>
           </div>
@@ -175,7 +165,6 @@
               <option value="4">Level 4</option>
               <option value="5">Level 5</option>
             </select>
-            <button id="targetModeBtn" type="button" title="Default target mode for newly placed towers" aria-label="Default target mode for newly placed towers">Default Target: Garden</button>
             <button id="instructionsBtn" type="button">How to Play</button>
             <label class="settingToggle" for="tutorialAutoToggle">
               <input id="tutorialAutoToggle" type="checkbox" />
@@ -229,7 +218,7 @@
     </div>
   </div>
 
-  <script src="./game.js?v=20260222d"></script>
+  <script src="./game.js?v=20260222aa"></script>
 </body>
 </html>
 

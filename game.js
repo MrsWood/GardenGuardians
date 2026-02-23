@@ -398,7 +398,6 @@ const canvas = document.getElementById("game");
     const upgradeStatsEl = document.getElementById("upgradeStats");
     const upgradeSelectedBtn = document.getElementById("upgradeSelectedBtn");
     const sellSelectedBtn = document.getElementById("sellSelectedBtn");
-    const towerTargetSelect = document.getElementById("towerTargetSelect");
     const sprayTowerBtn = document.getElementById("sprayTowerBtn");
     const glueTowerBtn = document.getElementById("glueTowerBtn");
     const hoseTowerBtn = document.getElementById("hoseTowerBtn");
@@ -409,7 +408,6 @@ const canvas = document.getElementById("game");
     const tutorialAutoToggle = document.getElementById("tutorialAutoToggle");
     const levelStatEl = document.getElementById("levelStat");
     const difficultyStatEl = document.getElementById("difficultyStat");
-    const targetModeBtn = document.getElementById("targetModeBtn");
     const instructionsBtn = document.getElementById("instructionsBtn");
     const hudMuteBtn = document.getElementById("hudMuteBtn");
     const audioEnabledToggle = document.getElementById("audioEnabledToggle");
@@ -432,7 +430,6 @@ const canvas = document.getElementById("game");
     const startBtn = document.getElementById("startBtn");
     const startBtnGlyphEl = document.getElementById("startBtnGlyph");
     const startBtnMainEl = document.getElementById("startBtnMain");
-    const startBtnSubEl = document.getElementById("startBtnSub");
     const pauseBtn = document.getElementById("pauseBtn");
     const tutorialOverlayEl = document.getElementById("tutorialOverlay");
     const tutorialStepPlaceEl = document.getElementById("tutorialStepPlace");
@@ -441,15 +438,13 @@ const canvas = document.getElementById("game");
     const tutorialSkipBtn = document.getElementById("tutorialSkipBtn");
     const nextLevelBtn = document.getElementById("nextLevelBtn");
     const resetBtn = document.getElementById("resetBtn");
-    const nextWaveCountdownEl = document.getElementById("nextWaveCountdown");
     const nextWaveStatEl = document.getElementById("nextWaveStat");
     const bonusWaveStatEl = document.getElementById("bonusWaveStat");
     const towerFloatCardEl = document.getElementById("towerFloatCard");
-    const towerFloatTitleEl = document.getElementById("towerFloatTitle");
-    const towerFloatStatsEl = document.getElementById("towerFloatStats");
     const towerFloatUpgradeBtn = document.getElementById("towerFloatUpgradeBtn");
     const towerFloatSellBtn = document.getElementById("towerFloatSellBtn");
-    const towerFloatTargetSelect = document.getElementById("towerFloatTargetSelect");
+    const towerFloatSellValEl = document.getElementById("towerFloatSellVal");
+    const towerFloatUpgradeValEl = document.getElementById("towerFloatUpgradeVal");
 
     let money;
     let bank;
@@ -475,7 +470,6 @@ const canvas = document.getElementById("game");
     let gardenVegetables;
     let vegetableById;
     let nextVegetableId;
-    let targetMode;
     let highscores;
     let completedLevels;
     let scoreSubmittedForWave;
@@ -502,6 +496,8 @@ const canvas = document.getElementById("game");
     let waveSummaryHideTimer;
     let waveCalloutHideTimer;
     let waveSummaryLockUntil;
+    let towerFloatHideAt;
+    let towerFloatHover;
     let autosaveIntervalId;
     let profileData;
     let tutorialProgress;
@@ -1067,7 +1063,6 @@ const canvas = document.getElementById("game");
         nextLevelPending: parsed.nextLevelPending ? Number(parsed.nextLevelPending) : null,
         selectedTowerType: parsed.selectedTowerType || "spray",
         selectedTowerId: parsed.selectedTowerId ? Number(parsed.selectedTowerId) : null,
-        targetMode: parsed.targetMode === "closest" ? "closest" : "garden",
         tutorialProgress: parsed.tutorialProgress && typeof parsed.tutorialProgress === "object" ? parsed.tutorialProgress : getDefaultTutorialProgress(),
         towers: Array.isArray(parsed.towers) ? parsed.towers : [],
         enemies: Array.isArray(parsed.enemies) ? parsed.enemies : [],
@@ -1098,7 +1093,6 @@ const canvas = document.getElementById("game");
         nextEnemyId,
         nextTowerId,
         nextVegetableId,
-        targetMode,
         bunnySpawnCooldown,
         autoWaveRemainingMs,
         currentWaveEarlyStart,
@@ -1476,7 +1470,6 @@ const canvas = document.getElementById("game");
       selectedTowerType = "spray";
       selectedTowerId = null;
       frameCount = 0;
-      targetMode = "garden";
       scoreSubmittedForWave = false;
       autoWaveDueAt = 0;
       currentWaveEarlyStart = false;
@@ -1496,6 +1489,8 @@ const canvas = document.getElementById("game");
       currentWaveStartLives = lives || 0;
       currentWaveDamageDealt = 0;
       waveSummaryLockUntil = 0;
+      towerFloatHideAt = 0;
+      towerFloatHover = false;
       tutorialProgress = getDefaultTutorialProgress();
       runtimeCrashed = false;
       scorePanelEl.style.display = "none";
@@ -1528,7 +1523,6 @@ const canvas = document.getElementById("game");
       lives = gardenVegetables.length;
       currentWaveStartLives = lives;
       syncTowerSelectionUI();
-      syncTargetModeUI();
       setStatus("Build defenses, then start Wave 1.", "warn");
       syncHUD();
       updateMusicPlayback();
@@ -1619,7 +1613,6 @@ const canvas = document.getElementById("game");
       nextEnemyId = Number(run.nextEnemyId) || 1;
       nextTowerId = Number(run.nextTowerId) || 1;
       nextVegetableId = Number(run.nextVegetableId) || 1;
-      targetMode = run.targetMode || "garden";
       bunnySpawnCooldown = Number(run.bunnySpawnCooldown) || getBunnyCooldown();
       currentWaveEarlyStart = !!run.currentWaveEarlyStart;
       currentWaveHasBoss = !!run.currentWaveHasBoss;
@@ -1631,6 +1624,8 @@ const canvas = document.getElementById("game");
       currentWaveStartLives = Number(run.currentWaveStartLives) || lives;
       currentWaveDamageDealt = Number(run.currentWaveDamageDealt) || 0;
       waveSummaryLockUntil = 0;
+      towerFloatHideAt = 0;
+      towerFloatHover = false;
       nextLevelPending = Number(run.nextLevelPending) || null;
       tutorialProgress = {
         ...getDefaultTutorialProgress(),
@@ -1667,7 +1662,6 @@ const canvas = document.getElementById("game");
       if (landingScreenEl) landingScreenEl.style.display = "none";
       if (shellEl) shellEl.classList.remove("paused", "uiQuiet");
       updateMusicPlayback();
-      syncTargetModeUI();
       syncTowerSelectionUI();
       renderTutorialProgress();
       setStatus(`Resumed Level ${levelNumber} at wave ${wave}.`, "good");
@@ -1771,19 +1765,12 @@ const canvas = document.getElementById("game");
       if (autoWaveTimer && autoWaveDueAt > 0 && !gameOver) {
         const remainingMs = Math.max(0, autoWaveDueAt - Date.now());
         const sec = Math.max(1, Math.ceil(remainingMs / 1000));
-        nextWaveCountdownEl.textContent = `Next: ${sec}s (+25%)`;
         nextWaveStatEl.textContent = nextIsBoss ? `Next: ${sec}s (Boss, +25% early)` : `Next: ${sec}s (+25% early)`;
         bonusWaveStatEl.textContent = "Bonus: +25% if started early";
         startBtn.dataset.state = nextIsBoss ? "boss" : "early";
         if (startBtnGlyphEl) startBtnGlyphEl.textContent = nextIsBoss ? "BOSS" : "+25";
-        if (startBtnMainEl) startBtnMainEl.textContent = nextIsBoss ? "Start Boss Wave" : "Start Wave Now";
-        if (startBtnSubEl) startBtnSubEl.textContent = `+25% bonus | Auto in ${sec}s`;
+        if (startBtnMainEl) startBtnMainEl.textContent = nextIsBoss ? `Boss in ${sec}s (+25%)` : `Start in ${sec}s (+25%)`;
       } else {
-        if (gameOver) nextWaveCountdownEl.textContent = "Next: --";
-        else if (levelComplete && nextLevelPending) nextWaveCountdownEl.textContent = `Next: L${nextLevelPending}`;
-        else if (levelComplete) nextWaveCountdownEl.textContent = "Next: Complete";
-        else if (!canSpawnNextWave) nextWaveCountdownEl.textContent = "Next: Final Cleared";
-        else nextWaveCountdownEl.textContent = nextIsBoss ? "Next: Ready (Boss)" : "Next: Ready";
         if (gameOver) nextWaveStatEl.textContent = "Next: --";
         else if (levelComplete && nextLevelPending) nextWaveStatEl.textContent = `Next: Level ${nextLevelPending} Ready`;
         else if (levelComplete) nextWaveStatEl.textContent = `Level ${levelNumber} Complete`;
@@ -1804,27 +1791,22 @@ const canvas = document.getElementById("game");
           startBtn.dataset.state = "locked";
           if (startBtnGlyphEl) startBtnGlyphEl.textContent = "END";
           if (startBtnMainEl) startBtnMainEl.textContent = "Game Over";
-          if (startBtnSubEl) startBtnSubEl.textContent = "Start a new run";
         } else if (levelComplete && nextLevelPending) {
           startBtn.dataset.state = "complete";
           if (startBtnGlyphEl) startBtnGlyphEl.textContent = "NEXT";
           if (startBtnMainEl) startBtnMainEl.textContent = `Start Level ${nextLevelPending}`;
-          if (startBtnSubEl) startBtnSubEl.textContent = "Progress campaign";
         } else if (levelComplete) {
           startBtn.dataset.state = "complete";
           if (startBtnGlyphEl) startBtnGlyphEl.textContent = "DONE";
           if (startBtnMainEl) startBtnMainEl.textContent = "Level Complete";
-          if (startBtnSubEl) startBtnSubEl.textContent = "Choose next level";
         } else if (currentWaveHasBoss) {
           startBtn.dataset.state = "boss";
           if (startBtnGlyphEl) startBtnGlyphEl.textContent = "BOSS";
           if (startBtnMainEl) startBtnMainEl.textContent = "Start Boss Wave";
-          if (startBtnSubEl) startBtnSubEl.textContent = "High risk, high reward";
         } else {
           startBtn.dataset.state = "ready";
           if (startBtnGlyphEl) startBtnGlyphEl.textContent = "GO";
           if (startBtnMainEl) startBtnMainEl.textContent = "Start Wave";
-          if (startBtnSubEl) startBtnSubEl.textContent = "Tap when ready";
         }
       }
       renderUpgradePanel();
@@ -2078,6 +2060,7 @@ const canvas = document.getElementById("game");
       playSfx("upgrade");
       markTutorialProgress("upgradedTower");
       selectedTowerId = chosen.id;
+      showTowerFloatCardBriefly(2200);
       chosen.showRangeUntil = frameCount + 220;
       syncHUD();
       saveRunSnapshot();
@@ -2157,15 +2140,12 @@ const canvas = document.getElementById("game");
         sellSelectedBtn.textContent = "Sell";
         upgradeSelectedBtn.disabled = true;
         sellSelectedBtn.disabled = true;
-        towerTargetSelect.disabled = true;
         return;
       }
 
       const name = getTowerDisplayName(selected.type);
       upgradeTitleEl.textContent = `${name} L${selected.level}`;
       sellSelectedBtn.disabled = false;
-      towerTargetSelect.disabled = false;
-      towerTargetSelect.value = selected.targetMode || "garden";
       const sellValue = getTowerSellValue(selected);
       sellSelectedBtn.textContent = `Sell ($${sellValue})`;
       if (selected.level >= 6) {
@@ -2228,6 +2208,22 @@ const canvas = document.getElementById("game");
       }
     }
 
+    function setTowerFloatCardPosition(left, top) {
+      if (!towerFloatCardEl) return;
+      const wrap = document.querySelector(".gameWrap");
+      if (!wrap) return;
+      const wrapRect = wrap.getBoundingClientRect();
+      const cardW = towerFloatCardEl.offsetWidth || 128;
+      const cardH = towerFloatCardEl.offsetHeight || 82;
+      const margin = 6;
+      const maxLeft = Math.max(margin, wrapRect.width - cardW - margin);
+      const maxTop = Math.max(margin, wrapRect.height - cardH - margin);
+      const clampedLeft = Math.max(margin, Math.min(left, maxLeft));
+      const clampedTop = Math.max(margin, Math.min(top, maxTop));
+      towerFloatCardEl.style.left = `${Math.round(clampedLeft)}px`;
+      towerFloatCardEl.style.top = `${Math.round(clampedTop)}px`;
+    }
+
     function positionFloatingCardForTower(tower) {
       if (!towerFloatCardEl || !tower || !canvas) return;
       const wrap = document.querySelector(".gameWrap");
@@ -2239,26 +2235,24 @@ const canvas = document.getElementById("game");
 
       const anchorX = (canvasRect.left - wrapRect.left) + tower.x * scaleX;
       const anchorY = (canvasRect.top - wrapRect.top) + tower.y * scaleY;
+      const cardH = towerFloatCardEl.offsetHeight || 82;
+      const left = anchorX + 20;
+      const top = anchorY - cardH * 0.5;
+      setTowerFloatCardPosition(left, top);
+    }
 
-      const cardW = towerFloatCardEl.offsetWidth || 210;
-      const cardH = towerFloatCardEl.offsetHeight || 120;
-      const margin = 8;
-      let left = anchorX + 22;
-      let top = anchorY - cardH * 0.55;
-
-      const maxLeft = Math.max(margin, wrapRect.width - cardW - margin);
-      const maxTop = Math.max(margin, wrapRect.height - cardH - margin);
-      left = Math.max(margin, Math.min(left, maxLeft));
-      top = Math.max(margin, Math.min(top, maxTop));
-
-      towerFloatCardEl.style.left = `${Math.round(left)}px`;
-      towerFloatCardEl.style.top = `${Math.round(top)}px`;
+    function showTowerFloatCardBriefly(ms = 2600) {
+      towerFloatHideAt = Date.now() + Math.max(500, ms);
     }
 
     function renderFloatingTowerCard() {
       if (!towerFloatCardEl) return;
       const selected = towers.find(t => t.id === selectedTowerId);
       if (!selected || !gameStarted || gameOver) {
+        towerFloatCardEl.hidden = true;
+        return;
+      }
+      if (!towerFloatHover && towerFloatHideAt > 0 && Date.now() > towerFloatHideAt) {
         towerFloatCardEl.hidden = true;
         return;
       }
@@ -2269,35 +2263,16 @@ const canvas = document.getElementById("game");
       const upgradeCost = isMax ? 0 : getUpgradeCost(selected);
       const canAfford = isMax ? false : money >= upgradeCost;
 
-      if (towerFloatTitleEl) towerFloatTitleEl.textContent = `${name}  L${selected.level}`;
-      if (towerFloatStatsEl) {
-        if (selected.type === "glue") {
-          const slowPct = Math.round((1 - selected.slowMultiplier) * 100);
-          towerFloatStatsEl.textContent = `Range ${Math.round(selected.range)} • Rate ${selected.fireRate} • Slow ${slowPct}%`;
-        } else if (selected.type === "hose") {
-          const dps = (selected.damage / Math.max(1, selected.fireRate / 60)).toFixed(1);
-          towerFloatStatsEl.textContent = `Beam ${selected.damage} • Width ${selected.beamWidth.toFixed(1)} • DPS ${dps}`;
-        } else if (selected.type === "salt") {
-          const dps = (selected.damage / Math.max(1, selected.fireRate / 60)).toFixed(1);
-          towerFloatStatsEl.textContent = `Shot ${selected.damage} • Range ${Math.round(selected.range)} • DPS ${dps}`;
-        } else {
-          const dps = ((selected.damage * 0.34 * 6) / Math.max(1, selected.fireRate / 60)).toFixed(1);
-          towerFloatStatsEl.textContent = `Damage ${selected.damage} • Range ${Math.round(selected.range)} • DPS ${dps}`;
-        }
-      }
-
       if (towerFloatUpgradeBtn) {
-        towerFloatUpgradeBtn.textContent = isMax ? "Maxed" : `Upgrade $${upgradeCost}`;
+        towerFloatUpgradeBtn.title = isMax ? `${name} L${selected.level} maxed` : `${name} L${selected.level} upgrade $${upgradeCost}`;
         towerFloatUpgradeBtn.disabled = isMax || !canAfford;
       }
       if (towerFloatSellBtn) {
-        towerFloatSellBtn.textContent = `Sell $${sellValue}`;
+        towerFloatSellBtn.title = `${name} L${selected.level} sell for $${sellValue}`;
         towerFloatSellBtn.disabled = false;
       }
-      if (towerFloatTargetSelect) {
-        towerFloatTargetSelect.disabled = false;
-        towerFloatTargetSelect.value = selected.targetMode || "garden";
-      }
+      if (towerFloatSellValEl) towerFloatSellValEl.textContent = `$${sellValue}`;
+      if (towerFloatUpgradeValEl) towerFloatUpgradeValEl.textContent = isMax ? "MAX" : `$${upgradeCost}`;
 
       towerFloatCardEl.hidden = false;
       positionFloatingCardForTower(selected);
@@ -2406,19 +2381,6 @@ const canvas = document.getElementById("game");
         e.preventDefault();
         setSelectedTowerType("salt");
       }
-    }
-
-    function syncTargetModeUI() {
-      targetModeBtn.textContent = targetMode === "closest" ? "Default Target: Nearest" : "Default Target: Garden";
-      targetModeBtn.title = "Default target mode for newly placed towers";
-      targetModeBtn.setAttribute("aria-label", "Default target mode for newly placed towers");
-    }
-
-    function toggleTargetMode() {
-      targetMode = targetMode === "closest" ? "garden" : "closest";
-      syncTargetModeUI();
-      setStatus(targetMode === "closest" ? "Default target for new towers set to Nearest." : "Default target for new towers set to Garden.", "warn");
-      saveRunSnapshot();
     }
 
     function catmullRomPoint(t, p0, p1, p2, p3) {
@@ -3017,7 +2979,6 @@ const canvas = document.getElementById("game");
           slowMultiplier: 0.6,
           trapRadius: 25,
           trapLife: 190,
-          targetMode,
           totalSpent: towerCost,
           showRangeUntil: frameCount + 220
         });
@@ -3035,7 +2996,6 @@ const canvas = document.getElementById("game");
           cooldown: 0,
           laserFlash: 0,
           lastAimAngle: 0,
-          targetMode,
           totalSpent: towerCost,
           showRangeUntil: frameCount + 220
         });
@@ -3052,7 +3012,6 @@ const canvas = document.getElementById("game");
           cooldown: 0,
           sprayFlash: 0,
           lastAimAngle: 0,
-          targetMode,
           totalSpent: towerCost,
           showRangeUntil: frameCount + 220
         });
@@ -3069,12 +3028,12 @@ const canvas = document.getElementById("game");
           cooldown: 0,
           sprayFlash: 0,
           lastAimAngle: 0,
-          targetMode,
           totalSpent: towerCost,
           showRangeUntil: frameCount + 220
         });
       }
       selectedTowerId = towers[towers.length - 1].id;
+      showTowerFloatCardBriefly(1800);
       money -= towerCost;
       setStatus("Tower placed.", "good");
       playSfx("place");
@@ -3121,6 +3080,9 @@ const canvas = document.getElementById("game");
         autoWaveTimer = null;
       }
       autoWaveDueAt = 0;
+      towerFloatHideAt = 0;
+      towerFloatHover = false;
+      if (towerFloatCardEl) towerFloatCardEl.hidden = true;
       if (waveSummaryHideTimer) {
         clearTimeout(waveSummaryHideTimer);
         waveSummaryHideTimer = null;
@@ -3247,17 +3209,16 @@ const canvas = document.getElementById("game");
     }
 
     function pickTarget(tower) {
-      const mode = tower.targetMode || targetMode;
       let best = null;
-      let bestScore = mode === "closest" ? Infinity : -Infinity;
+      let bestScore = -Infinity;
       const rangeSq = tower.range * tower.range;
       for (const e of enemies) {
         const dx = e.x - tower.x;
         const dy = e.y - tower.y;
         const dSq = dx * dx + dy * dy;
         if (dSq > rangeSq) continue;
-        const score = mode === "closest" ? dSq : e.progress;
-        if (!best || (mode === "closest" ? score < bestScore : score > bestScore)) {
+        const score = e.progress;
+        if (!best || score > bestScore) {
           best = e;
           bestScore = score;
         }
@@ -5812,6 +5773,7 @@ const canvas = document.getElementById("game");
       if (existing) {
         selectedTowerId = existing.id;
         existing.showRangeUntil = frameCount + 220;
+        showTowerFloatCardBriefly(2600);
         setStatus(`${getTowerDisplayName(existing.type)} selected.`, "warn");
         syncHUD();
         return;
@@ -5845,7 +5807,6 @@ const canvas = document.getElementById("game");
     if (glueTowerBtn) glueTowerBtn.addEventListener("keydown", (e) => towerSelectKeys(e, "glue"));
     if (hoseTowerBtn) hoseTowerBtn.addEventListener("keydown", (e) => towerSelectKeys(e, "hose"));
     if (saltTowerBtn) saltTowerBtn.addEventListener("keydown", (e) => towerSelectKeys(e, "salt"));
-    targetModeBtn.addEventListener("click", toggleTargetMode);
     difficultySelect.addEventListener("change", () => {
       difficultyKey = difficultySelect.value;
       resetGame(true);
@@ -5977,25 +5938,17 @@ const canvas = document.getElementById("game");
         sellTowerById(selectedTowerId);
       });
     }
-    towerTargetSelect.addEventListener("change", () => {
-      const selected = towers.find(t => t.id === selectedTowerId);
-      if (!selected) return;
-      selected.targetMode = towerTargetSelect.value;
-      if (towerFloatTargetSelect) towerFloatTargetSelect.value = towerTargetSelect.value;
-      setStatus(`${getTowerDisplayName(selected.type)} target set to ${towerTargetSelect.value === "closest" ? "Closest" : "Garden"}.`, "warn");
-      syncHUD();
-      saveRunSnapshot();
-    });
-    if (towerFloatTargetSelect) {
-      towerFloatTargetSelect.addEventListener("change", () => {
-        const selected = towers.find(t => t.id === selectedTowerId);
-        if (!selected) return;
-        selected.targetMode = towerFloatTargetSelect.value;
-        if (towerTargetSelect) towerTargetSelect.value = towerFloatTargetSelect.value;
-        setStatus(`${getTowerDisplayName(selected.type)} target set to ${towerFloatTargetSelect.value === "closest" ? "Closest" : "Garden"}.`, "warn");
-        syncHUD();
-        saveRunSnapshot();
+    if (towerFloatCardEl) {
+      towerFloatCardEl.addEventListener("mouseenter", () => {
+        towerFloatHover = true;
       });
+      towerFloatCardEl.addEventListener("mouseleave", () => {
+        towerFloatHover = false;
+        showTowerFloatCardBriefly(1200);
+      });
+      towerFloatCardEl.addEventListener("pointerdown", () => {
+        showTowerFloatCardBriefly(2200);
+      }, { passive: true });
     }
     submitScoreBtn.addEventListener("click", submitHighscore);
     scoreNameInputEl.addEventListener("keydown", (e) => {

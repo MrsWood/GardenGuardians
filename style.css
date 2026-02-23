@@ -1127,10 +1127,6 @@
       border-radius: 6px;
     }
 
-    .towerPanel #towerTargetSelect {
-      font-size: 11px;
-      padding: 3px 6px;
-    }
 
     .upgradeActions {
       display: inline-flex;
@@ -1158,15 +1154,6 @@
       background: #6d3d3d;
     }
 
-    #towerTargetSelect {
-      border: 1px solid #4b5b86;
-      border-radius: 6px;
-      padding: 4px 7px;
-      background: #111a32;
-      color: #eef3ff;
-      font-size: 12px;
-      font-weight: 700;
-    }
 
     #upgradeTitle {
       font-weight: 800;
@@ -1596,42 +1583,49 @@
     .towerFloatCard {
       position: absolute;
       z-index: 11;
-      min-width: 190px;
-      max-width: 240px;
-      padding: 8px 9px;
-      border-radius: 10px;
-      border: 1px solid rgba(143, 183, 246, 0.62);
-      background: linear-gradient(180deg, rgba(12, 24, 45, 0.96), rgba(9, 16, 31, 0.96));
-      box-shadow: 0 8px 18px rgba(4, 10, 18, 0.42);
-      backdrop-filter: blur(2px);
+      min-width: 122px;
+      max-width: 138px;
+      padding: 5px 6px;
+      border-radius: 8px;
+      border: none;
+      background: transparent;
+      box-shadow: none;
+      backdrop-filter: none;
     }
 
     .towerFloatTitle {
-      font-size: 12px;
+      font-size: 10px;
       font-weight: 800;
       color: #e9f1ff;
       margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .towerFloatStats {
-      font-size: 10px;
-      line-height: 1.25;
+      font-size: 9px;
+      line-height: 1.1;
       color: #bdd2fb;
-      margin-bottom: 7px;
+      margin-bottom: 5px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: none;
     }
 
     .towerFloatActions {
       display: flex;
-      gap: 6px;
-      margin-bottom: 7px;
+      gap: 4px;
+      margin-bottom: 0;
     }
 
     .towerFloatActions button {
       flex: 1;
       border: 1px solid rgba(122, 156, 214, 0.52);
-      border-radius: 7px;
-      padding: 5px 6px;
-      font-size: 10px;
+      border-radius: 6px;
+      padding: 4px 5px;
+      font-size: 9px;
       font-weight: 800;
       color: #eef5ff;
       background: linear-gradient(180deg, rgba(57, 94, 150, 0.95), rgba(42, 74, 122, 0.95));
@@ -1643,24 +1637,23 @@
       cursor: not-allowed;
     }
 
-    .towerFloatTargetRow {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 10px;
-      color: #c9dbfb;
-      font-weight: 700;
+
+    .towerFloatCard:hover,
+    .towerFloatCard:focus-within {
+      min-width: 154px;
+      max-width: 182px;
+      padding: 6px 7px;
     }
 
-    #towerFloatTargetSelect {
-      border: 1px solid rgba(105, 131, 186, 0.62);
-      border-radius: 7px;
-      padding: 3px 5px;
-      background: rgba(10, 19, 36, 0.94);
-      color: #e8f1ff;
-      font-size: 10px;
-      font-weight: 700;
-      min-width: 88px;
+    .towerFloatCard:hover .towerFloatStats,
+    .towerFloatCard:focus-within .towerFloatStats {
+      display: block;
+    }
+
+
+    .towerFloatCard:hover .towerFloatActions,
+    .towerFloatCard:focus-within .towerFloatActions {
+      margin-bottom: 5px;
     }
 
     .tutorialOverlay {
@@ -1848,9 +1841,9 @@
     }
 
     .gameTopOverlay #startBtn {
-      width: 182px;
-      min-width: 182px;
-      max-width: 182px;
+      width: 198px;
+      min-width: 198px;
+      max-width: 198px;
       padding: 4px 9px;
       border: 0;
       border-radius: 0;
@@ -1868,16 +1861,16 @@
       pointer-events: auto;
       display: grid;
       grid-template-columns: auto 1fr;
-      grid-template-rows: auto auto;
+      grid-template-rows: auto;
       justify-content: start;
       align-items: center;
       column-gap: 7px;
-      row-gap: 1px;
+      row-gap: 0;
     }
 
     .gameTopOverlay #startBtn #startBtnGlyph {
       grid-column: 1;
-      grid-row: 1 / span 2;
+      grid-row: 1;
       min-width: 30px;
       height: 22px;
       padding: 0 6px;
@@ -1902,17 +1895,6 @@
       font-weight: 900;
       line-height: 1.1;
       letter-spacing: 0.22px;
-    }
-
-    .gameTopOverlay #startBtn #startBtnSub {
-      grid-column: 2;
-      grid-row: 2;
-      display: inline-block;
-      font-size: 10px;
-      font-weight: 700;
-      line-height: 1.1;
-      opacity: 0.92;
-      letter-spacing: 0.08px;
     }
 
     .gameTopOverlay #startBtn[data-state="early"] {
@@ -2017,5 +1999,85 @@
       border-radius: 12px;
       display: block;
       margin: 0 auto;
+    }
+
+    /* Micro popup mode for better playability on small screens. */
+    .towerFloatCard,
+    .towerFloatCard:hover,
+    .towerFloatCard:focus-within {
+      min-width: 108px;
+      max-width: 122px;
+      padding: 4px 5px;
+      border-radius: 7px;
+    }
+
+    .towerFloatTitle {
+      font-size: 9px;
+      margin-bottom: 2px;
+    }
+
+    .towerFloatStats {
+      display: none !important;
+    }
+
+    .towerFloatActions {
+      gap: 3px;
+      margin-bottom: 3px !important;
+    }
+
+    .towerFloatActions button {
+      font-size: 8px;
+      padding: 3px 4px;
+      border-radius: 5px;
+    }
+
+
+    .towerFloatIconRow {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 6px;
+      width: 100%;
+    }
+
+    .towerFloatIconBtn {
+      width: 44px;
+      height: 44px;
+      border: 1px solid rgba(122, 156, 214, 0.62);
+      border-radius: 999px;
+      padding: 2px;
+      background: linear-gradient(180deg, rgba(57, 94, 150, 0.95), rgba(42, 74, 122, 0.95));
+      color: #eef5ff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1px;
+      font-size: 10px;
+      font-weight: 900;
+      line-height: 1;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(4, 12, 24, 0.32);
+    }
+
+    .towerFloatIconBtn:disabled {
+      opacity: 0.56;
+      cursor: not-allowed;
+    }
+
+    .towerFloatGlyph {
+      font-size: 12px;
+      line-height: 1;
+      font-weight: 900;
+      opacity: 0.96;
+    }
+
+    #towerFloatSellVal,
+    #towerFloatUpgradeVal {
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 0.02em;
+      color: #f4f8ff;
+      text-shadow: 0 1px 2px rgba(3, 9, 20, 0.75);
     }
 
