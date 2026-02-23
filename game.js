@@ -53,12 +53,30 @@
       || typeof rendering.getTowerDockDefinitions !== "function"
       || typeof rendering.getTowerArtSources !== "function"
       || typeof rendering.shouldUseImportedTowerArt !== "function"
+      || typeof rendering.drawSaltCannonArt !== "function"
+      || typeof rendering.drawTowerPedestal !== "function"
+      || typeof rendering.drawSprayCloudArt !== "function"
+      || typeof rendering.drawGlueTowerArt !== "function"
+      || typeof rendering.drawHoseTowerArt !== "function"
+      || typeof rendering.renderTowerSelectorIcon !== "function"
+      || typeof rendering.drawTowerRangeAndGlow !== "function"
+      || typeof rendering.drawTowerLevelBadge !== "function"
       || typeof rendering.getEnemyStyle !== "function"
       || typeof rendering.getEnemyLabel !== "function"
       || typeof rendering.getPrimaryRoleChip !== "function"
       || typeof rendering.getEnemyOverlayLayout !== "function"
       || typeof rendering.drawEnemyOverlay !== "function") {
       throw new Error("Missing GG_RENDER helpers. Ensure rendering.js is loaded before game.js.");
+    }
+    const towerAssets = window.GG_TOWER_ASSETS || null;
+    if (!towerAssets
+      || typeof towerAssets.createTowerArtState !== "function"
+      || typeof towerAssets.sanitizeTowerArtImage !== "function"
+      || typeof towerAssets.loadTowerArtAssets !== "function"
+      || typeof towerAssets.drawTowerArtSprite !== "function"
+      || typeof towerAssets.ensureIconCanvas !== "function"
+      || typeof towerAssets.renderTowerSelectorIcons !== "function") {
+      throw new Error("Missing GG_TOWER_ASSETS helpers. Ensure tower_assets.js is loaded before game.js.");
     }
     const allowDirectLevelSelect = !!gameConfigs.allowDirectLevelSelect;
     const levelConfigs = gameConfigs.levelConfigs;
@@ -253,8 +271,7 @@
     const towerDetails = gameConfigs.towerDetails;
     const towerArtVersion = "20260222e";
     const towerArtSources = rendering.getTowerArtSources(towerArtVersion);
-    const towerArtImages = { spray: null, glue: null, hose: null, salt: null };
-    const towerArtProcessed = { spray: null, glue: null, hose: null, salt: null };
+    const towerArtState = towerAssets.createTowerArtState(["spray", "glue", "hose", "salt"]);
 
     const difficultyProfiles = gameConfigs.difficultyProfiles;
 
@@ -1549,10 +1566,20 @@
       try {
         record("DOM canvas exists", !!canvas, !!canvas ? "" : "Missing #game canvas");
         record("Core controls exist", !!landingStartBtn && !!startBtn && !!sprayTowerBtn, "Missing one or more required controls");
+        const towerAssetModuleLoaded = !!window.GG_TOWER_ASSETS;
+        record("Tower asset module loaded", towerAssetModuleLoaded, towerAssetModuleLoaded ? "" : "window.GG_TOWER_ASSETS missing");
 
         startNewGameFromLanding();
         await delayMs(60);
         record("Game started from landing", gameStarted && (landingScreenEl?.style.display === "none"), `gameStarted=${gameStarted}`);
+        const selectorIconsRendered =
+          !!sprayTowerBtn?.querySelector(".sprayIcon canvas")
+          && !!glueTowerBtn?.querySelector(".glueIcon canvas")
+          && !!hoseTowerBtn?.querySelector(".hoseIcon canvas")
+          && !!saltTowerBtn?.querySelector(".saltPreview canvas");
+        record("Tower selector icons rendered", selectorIconsRendered, selectorIconsRendered ? "" : "Missing one or more selector icon canvases");
+        const towerAssetReady = Object.values(towerArtState.images || {}).some(Boolean);
+        record("Tower art assets available", towerAssetReady, towerAssetReady ? "" : "No tower art image loaded");
 
         setSelectedTowerType("spray");
         await delayMs(20);
@@ -1568,8 +1595,21 @@
         startWave();
         await delayMs(160);
         record("Wave increments", wave === waveBefore + 1, `before=${waveBefore}, after=${wave}`);
+        const startWaveLabel = startBtn?.textContent?.trim() || "";
+        record("Start wave control text present", startWaveLabel.length > 0, startWaveLabel || "empty");
         await delayMs(1300);
         record("Enemies spawn or spawner active", enemies.length > 0 || activeSpawners > 0, `enemies=${enemies.length}, spawners=${activeSpawners}`);
+        if (enemies.length > 0) {
+          const overlay = rendering.getEnemyOverlayLayout(enemies[0]);
+          const overlayOk = !!overlay
+            && Number.isFinite(overlay.barX)
+            && Number.isFinite(overlay.barY)
+            && Number.isFinite(overlay.roleX)
+            && Number.isFinite(overlay.roleY);
+          record("Enemy overlay layout valid", overlayOk, overlayOk ? "" : JSON.stringify(overlay || {}));
+        } else {
+          record("Enemy overlay layout valid", activeSpawners > 0, "No enemy entity available for overlay check");
+        }
         await delayMs(260);
         record("Runtime stable", !runtimeCrashed, runtimeCrashed ? "runtimeCrashed=true" : "");
 
@@ -1710,7 +1750,7 @@
     }
 
     function getEnemyLabelPlural(type, count) {
-      const label = getEnemyLabel(type);
+      const label = rendering.getEnemyLabel(type);
       if (count === 1) return label;
       if (label.endsWith("s")) return label;
       return `${label}s`;
@@ -3020,7 +3060,7 @@
       if (enemyIndex < 0 || enemyIndex >= enemies.length) return;
       const enemy = enemies[enemyIndex];
       releaseVegetableReservation(enemy);
-      const style = getEnemyStyle(enemy.enemyType);
+      const style = rendering.getEnemyStyle(enemy.enemyType);
       const deathColor = enemy.hitColor || style.hp || "rgba(255, 196, 130, 0.9)";
       spawnImpactBurst(enemy.x, enemy.y, deathColor, enemy.enemyType === "gatecrasher" ? 14 : 10, 1.15, 1.2, 2.2, 14);
       if (rewardOnDefeat) {
@@ -4265,667 +4305,58 @@
 
     }
 
-    function drawSaltCannonArt(drawCtx, aimAngle, sprayFlash) {
-      drawCtx.save();
-      drawCtx.rotate(aimAngle);
-
-      // Wooden carriage.
-      drawCtx.fillStyle = "#6d4a2b";
-      drawCtx.beginPath();
-      drawCtx.roundRect(-8.2, 3.6, 13.2, 3.4, 1.5);
-      drawCtx.fill();
-
-      // Wheels.
-      drawCtx.fillStyle = "#1a2029";
-      drawCtx.beginPath();
-      drawCtx.arc(-5.6, 6.8, 2.3, 0, Math.PI * 2);
-      drawCtx.arc(2.0, 6.8, 2.3, 0, Math.PI * 2);
-      drawCtx.fill();
-      drawCtx.fillStyle = "#56606c";
-      drawCtx.beginPath();
-      drawCtx.arc(-5.6, 6.8, 0.85, 0, Math.PI * 2);
-      drawCtx.arc(2.0, 6.8, 0.85, 0, Math.PI * 2);
-      drawCtx.fill();
-
-      // Bulbous rear body.
-      const bodyGrad = drawCtx.createRadialGradient(-2.5, -3.0, 2, 0, 0, 13.5);
-      bodyGrad.addColorStop(0, "#353c48");
-      bodyGrad.addColorStop(0.7, "#1d232c");
-      bodyGrad.addColorStop(1, "#0f141b");
-      drawCtx.fillStyle = bodyGrad;
-      drawCtx.strokeStyle = "#070a0f";
-      drawCtx.lineWidth = 1.5;
-      drawCtx.beginPath();
-      drawCtx.ellipse(-1.0, -1.2, 8.6, 6.8, 0, 0, Math.PI * 2);
-      drawCtx.fill();
-      drawCtx.stroke();
-      drawCtx.strokeStyle = "rgba(228, 236, 248, 0.38)";
-      drawCtx.lineWidth = 0.85;
-      drawCtx.beginPath();
-      drawCtx.ellipse(-2.9, -3.2, 4.1, 2.2, -0.22, 0, Math.PI * 2);
-      drawCtx.stroke();
-
-      // Trumpet barrel / muzzle for classic cartoon silhouette.
-      drawCtx.fillStyle = "#141a22";
-      drawCtx.beginPath();
-      drawCtx.moveTo(4.8, -3.2);
-      drawCtx.lineTo(20.4, -4.8);
-      drawCtx.lineTo(20.4, 4.8);
-      drawCtx.lineTo(4.8, 3.2);
-      drawCtx.closePath();
-      drawCtx.fill();
-      drawCtx.strokeStyle = "#0a0d12";
-      drawCtx.stroke();
-      drawCtx.fillStyle = "#1a212b";
-      drawCtx.beginPath();
-      drawCtx.ellipse(20.4, 0, 4.3, 5.8, 0, 0, Math.PI * 2);
-      drawCtx.fill();
-      drawCtx.fillStyle = "#0a0f15";
-      drawCtx.beginPath();
-      drawCtx.ellipse(20.4, 0, 1.8, 2.5, 0, 0, Math.PI * 2);
-      drawCtx.fill();
-
-      // Cannonball pile.
-      drawCtx.fillStyle = "#8b6a46";
-      drawCtx.beginPath();
-      drawCtx.ellipse(-12.0, 8.8, 6.6, 2.1, -0.08, 0, Math.PI * 2);
-      drawCtx.fill();
-      drawCtx.fillStyle = "#6c7583";
-      drawCtx.strokeStyle = "#1a2028";
-      drawCtx.lineWidth = 0.75;
-      drawCtx.beginPath();
-      drawCtx.arc(-11.4, 5.8, 2.25, 0, Math.PI * 2);
-      drawCtx.arc(-14.3, 8.0, 2.05, 0, Math.PI * 2);
-      drawCtx.arc(-8.4, 8.2, 2.05, 0, Math.PI * 2);
-      drawCtx.fill();
-      drawCtx.stroke();
-      drawCtx.fillStyle = "rgba(244, 249, 255, 0.75)";
-      drawCtx.beginPath();
-      drawCtx.arc(-12.2, 5.0, 0.65, 0, Math.PI * 2);
-      drawCtx.arc(-15.0, 7.3, 0.56, 0, Math.PI * 2);
-      drawCtx.arc(-9.1, 7.5, 0.56, 0, Math.PI * 2);
-      drawCtx.fill();
-
-      if (sprayFlash > 0) {
-        const alpha = 0.2 + (sprayFlash / 6) * 0.32;
-        drawCtx.fillStyle = `rgba(246, 246, 236, ${alpha})`;
-        drawCtx.beginPath();
-        drawCtx.arc(24.8, 0, 2.5 + (sprayFlash / 6) * 2.2, 0, Math.PI * 2);
-        drawCtx.fill();
-
-        drawCtx.strokeStyle = `rgba(247, 247, 236, ${Math.min(0.62, alpha + 0.18)})`;
-        drawCtx.lineWidth = 1.25;
-        drawCtx.beginPath();
-        drawCtx.moveTo(23.0, 0);
-        drawCtx.lineTo(33.2, -1.8);
-        drawCtx.moveTo(23.0, 0);
-        drawCtx.lineTo(33.2, 1.8);
-        drawCtx.stroke();
-      }
-
-      drawCtx.restore();
-    }
-
-    function drawTowerPedestal(drawCtx) {
-      drawCtx.fillStyle = "rgba(245, 249, 255, 0.94)";
-      drawCtx.strokeStyle = "rgba(120, 138, 170, 0.72)";
-      drawCtx.lineWidth = 1;
-      drawCtx.beginPath();
-      drawCtx.ellipse(0, 7.6, 8.8, 3.3, 0, 0, Math.PI * 2);
-      drawCtx.fill();
-      drawCtx.stroke();
-      drawCtx.fillStyle = "rgba(255, 255, 255, 0.42)";
-      drawCtx.beginPath();
-      drawCtx.ellipse(-1.8, 6.9, 3.4, 1.2, -0.15, 0, Math.PI * 2);
-      drawCtx.fill();
-    }
-
-    function drawSprayCloudArt(drawCtx, aimAngle, sprayFlash) {
-      drawCtx.save();
-      drawCtx.rotate(aimAngle);
-
-      const cloud = (x, y, r, color) => {
-        drawCtx.fillStyle = color;
-        drawCtx.beginPath();
-        drawCtx.arc(x, y, r, 0, Math.PI * 2);
-        drawCtx.fill();
-      };
-
-      cloud(-4.4, 1.2, 4.1, "rgba(255, 98, 98, 0.9)");
-      cloud(-1.1, -1.8, 4.8, "rgba(241, 62, 62, 0.92)");
-      cloud(2.7, 0.8, 4.1, "rgba(206, 40, 40, 0.92)");
-      cloud(5.3, -0.9, 3.7, "rgba(252, 115, 115, 0.86)");
-      cloud(0.7, 3.0, 3.9, "rgba(167, 27, 27, 0.88)");
-
-      drawCtx.strokeStyle = "rgba(112, 24, 24, 0.62)";
-      drawCtx.lineWidth = 0.9;
-      drawCtx.beginPath();
-      drawCtx.arc(-1.2, 0.4, 8.5, -2.65, 1.05);
-      drawCtx.stroke();
-
-      drawCtx.fillStyle = "rgba(255, 222, 222, 0.86)";
-      drawCtx.beginPath();
-      drawCtx.arc(-0.2, -4.6, 1.6, 0, Math.PI * 2);
-      drawCtx.fill();
-
-      drawCtx.strokeStyle = "#6d7772";
-      drawCtx.lineWidth = 1.8;
-      drawCtx.beginPath();
-      drawCtx.moveTo(7.2, -0.7);
-      drawCtx.lineTo(12.8, -0.7);
-      drawCtx.stroke();
-
-      drawCtx.fillStyle = "#59625f";
-      drawCtx.beginPath();
-      drawCtx.moveTo(12.8, -2.2);
-      drawCtx.lineTo(16.0, -0.7);
-      drawCtx.lineTo(12.8, 0.8);
-      drawCtx.closePath();
-      drawCtx.fill();
-
-      drawCtx.fillStyle = "#4a3030";
-      drawCtx.beginPath();
-      drawCtx.roundRect(-7.2, 2.2, 10.8, 3.1, 1.0);
-      drawCtx.fill();
-      drawCtx.fillStyle = "#ffe1d7";
-      drawCtx.font = "bold 2.6px Segoe UI";
-      drawCtx.textAlign = "center";
-      drawCtx.textBaseline = "middle";
-      drawCtx.fillText("SPRAY", -1.8, 3.75);
-
-      if (sprayFlash > 0) {
-        const alpha = 0.14 + (sprayFlash / 6) * 0.26;
-        drawCtx.fillStyle = `rgba(255, 92, 92, ${alpha})`;
-        drawCtx.beginPath();
-        drawCtx.moveTo(16.0, -0.8);
-        drawCtx.lineTo(29.8, -6.8);
-        drawCtx.lineTo(29.8, 5.2);
-        drawCtx.closePath();
-        drawCtx.fill();
-
-        drawCtx.strokeStyle = `rgba(255, 192, 192, ${Math.min(0.5, alpha + 0.12)})`;
-        drawCtx.lineWidth = 1.1;
-        drawCtx.beginPath();
-        drawCtx.arc(16.0, -0.8, 9.5, -0.45, 0.45);
-        drawCtx.stroke();
-        drawCtx.beginPath();
-        drawCtx.arc(16.0, -0.8, 13.3, -0.45, 0.45);
-        drawCtx.stroke();
-      }
-
-      drawCtx.restore();
-    }
-
-    function sanitizeTowerArtImage(img) {
-      const w = img.naturalWidth || img.width;
-      const h = img.naturalHeight || img.height;
-      if (!w || !h) return null;
-      const off = document.createElement("canvas");
-      off.width = w;
-      off.height = h;
-      const octx = off.getContext("2d");
-      if (!octx) return null;
-      octx.clearRect(0, 0, w, h);
-      octx.drawImage(img, 0, 0, w, h);
-      const imageData = octx.getImageData(0, 0, w, h);
-      const data = imageData.data;
-      const idx = (x, y) => (y * w + x) * 4;
-      const colorAt = (x, y) => {
-        const i = idx(x, y);
-        return [data[i], data[i + 1], data[i + 2], data[i + 3]];
-      };
-      const cornerSeeds = [
-        [0, 0],
-        [w - 1, 0],
-        [0, h - 1],
-        [w - 1, h - 1]
-      ];
-      const cornerColors = cornerSeeds.map(([x, y]) => colorAt(x, y));
-      const near = (r, g, b, cr, cg, cb, tol) =>
-        Math.abs(r - cr) <= tol && Math.abs(g - cg) <= tol && Math.abs(b - cb) <= tol;
-      const isBgLike = (r, g, b, a) => {
-        if (a === 0) return true;
-        if (r > 245 && g > 245 && b > 245) return true;
-        if (g > 90 && g > r * 1.2 && g > b * 1.1 && (g - r) > 20) return true;
-        for (let c = 0; c < cornerColors.length; c += 1) {
-          const cc = cornerColors[c];
-          if (near(r, g, b, cc[0], cc[1], cc[2], 40)) return true;
-        }
-        return false;
-      };
-
-      const visited = new Uint8Array(w * h);
-      const queue = [];
-      const push = (x, y) => {
-        if (x < 0 || y < 0 || x >= w || y >= h) return;
-        const vi = y * w + x;
-        if (visited[vi]) return;
-        visited[vi] = 1;
-        queue.push([x, y]);
-      };
-      push(0, 0);
-      push(w - 1, 0);
-      push(0, h - 1);
-      push(w - 1, h - 1);
-
-      while (queue.length) {
-        const [x, y] = queue.pop();
-        const i = idx(x, y);
-        const r = data[i];
-        const g = data[i + 1];
-        const b = data[i + 2];
-        const a = data[i + 3];
-        if (!isBgLike(r, g, b, a)) continue;
-        data[i + 3] = 0;
-        push(x + 1, y);
-        push(x - 1, y);
-        push(x, y + 1);
-        push(x, y - 1);
-      }
-
-      // Aggressive global green-matte cleanup for imported sprites.
-      for (let i = 0; i < data.length; i += 4) {
-        const r = data[i];
-        const g = data[i + 1];
-        const b = data[i + 2];
-        const a = data[i + 3];
-        if (a === 0) continue;
-        const greenDominant =
-          g >= 70 &&
-          (g - r) >= 12 &&
-          (g - b) >= 8 &&
-          g > r * 1.08 &&
-          g > b * 1.04;
-        if (greenDominant) {
-          data[i + 3] = 0;
-        }
-      }
-
-      octx.putImageData(imageData, 0, 0);
-      // Trim large transparent margins so selector/canvas rendering scales to the visible art.
-      let minX = w;
-      let minY = h;
-      let maxX = -1;
-      let maxY = -1;
-      for (let y = 0; y < h; y += 1) {
-        for (let x = 0; x < w; x += 1) {
-          const i = (y * w + x) * 4;
-          if (data[i + 3] > 0) {
-            if (x < minX) minX = x;
-            if (y < minY) minY = y;
-            if (x > maxX) maxX = x;
-            if (y > maxY) maxY = y;
-          }
-        }
-      }
-      if (maxX < minX || maxY < minY) return off;
-      const pad = 2;
-      const sx = Math.max(0, minX - pad);
-      const sy = Math.max(0, minY - pad);
-      const sw = Math.min(w - sx, (maxX - minX + 1) + pad * 2);
-      const sh = Math.min(h - sy, (maxY - minY + 1) + pad * 2);
-      const trimmed = document.createElement("canvas");
-      trimmed.width = Math.max(1, sw);
-      trimmed.height = Math.max(1, sh);
-      const tctx = trimmed.getContext("2d");
-      if (!tctx) return off;
-      tctx.drawImage(off, sx, sy, sw, sh, 0, 0, sw, sh);
-      return trimmed;
-    }
-
     function loadTowerArtAssets() {
-      const keys = Object.keys(towerArtSources);
-      for (const key of keys) {
-        const img = new Image();
-        img.decoding = "async";
-        img.onload = () => {
-          towerArtImages[key] = img;
-          towerArtProcessed[key] = sanitizeTowerArtImage(img);
+      towerAssets.loadTowerArtAssets({
+        sources: towerArtSources,
+        state: towerArtState,
+        onAssetReady: () => {
           renderTowerSelectorIcons();
-        };
-        img.onerror = () => {
-          towerArtImages[key] = null;
-          towerArtProcessed[key] = null;
-        };
-        img.src = towerArtSources[key];
-      }
+        }
+      });
     }
 
     function drawTowerArtSprite(drawCtx, type, opts = {}) {
-      if (!rendering.shouldUseImportedTowerArt(type)) return false;
-      const img = towerArtProcessed[type] || towerArtImages[type];
-      if (!img) return false;
-      const isCanvas = typeof HTMLCanvasElement !== "undefined" && img instanceof HTMLCanvasElement;
-      if (!isCanvas && (!img.complete || !img.naturalWidth)) return false;
-      const size = Number.isFinite(opts.size) ? opts.size : 27;
-      const angle = Number.isFinite(opts.angle) ? opts.angle : 0;
-      const x = Number.isFinite(opts.x) ? opts.x : 0;
-      const y = Number.isFinite(opts.y) ? opts.y : 0;
-      const iw = (isCanvas ? img.width : img.naturalWidth) || img.width || size;
-      const ih = (isCanvas ? img.height : img.naturalHeight) || img.height || size;
-      const scale = size / Math.max(iw, ih);
-      const dw = iw * scale;
-      const dh = ih * scale;
-      drawCtx.save();
-      drawCtx.translate(x, y);
-      if (angle) drawCtx.rotate(angle);
-      drawCtx.drawImage(img, -dw / 2, -dh / 2, dw, dh);
-      drawCtx.restore();
-      return true;
-    }
-
-    function ensureIconCanvas(hostEl, cls, width, height) {
-      if (!hostEl) return null;
-      let iconCanvas = hostEl.querySelector("canvas");
-      if (!iconCanvas) {
-        iconCanvas = document.createElement("canvas");
-        iconCanvas.className = cls;
-        hostEl.textContent = "";
-        hostEl.appendChild(iconCanvas);
-      }
-      if (iconCanvas.width !== width) iconCanvas.width = width;
-      if (iconCanvas.height !== height) iconCanvas.height = height;
-      return iconCanvas;
+      return towerAssets.drawTowerArtSprite({
+        drawCtx,
+        type,
+        opts,
+        state: towerArtState,
+        shouldUseImportedTowerArt: rendering.shouldUseImportedTowerArt
+      });
     }
 
     function renderTowerSelectorIcons() {
-      const sprayHost = sprayTowerBtn ? sprayTowerBtn.querySelector(".sprayIcon") : null;
-      const glueHost = glueTowerBtn ? glueTowerBtn.querySelector(".glueIcon") : null;
-      const hoseHost = hoseTowerBtn ? hoseTowerBtn.querySelector(".hoseIcon") : null;
-      const saltHost = saltTowerBtn ? saltTowerBtn.querySelector(".saltPreview") : null;
-
-      const sprayCanvas = ensureIconCanvas(sprayHost, "towerAssetIconCanvas", 96, 96);
-      const glueCanvas = ensureIconCanvas(glueHost, "towerAssetIconCanvas", 96, 96);
-      const hoseCanvas = ensureIconCanvas(hoseHost, "towerAssetIconCanvas", 96, 96);
-      const saltCanvas = ensureIconCanvas(saltHost, "saltPreviewCanvas", 96, 96);
-
-      if (sprayCanvas) {
-        const iconCtx = sprayCanvas.getContext("2d");
-        if (iconCtx) {
-          iconCtx.clearRect(0, 0, sprayCanvas.width, sprayCanvas.height);
-          if (!drawTowerArtSprite(iconCtx, "spray", { x: 48, y: 50, size: 90, angle: -0.18 })) {
-            iconCtx.save();
-            iconCtx.translate(46, 52);
-            iconCtx.scale(3.7, 3.7);
-            drawSprayCloudArt(iconCtx, -0.18, 0);
-            iconCtx.restore();
-          }
-        }
-      }
-
-      if (glueCanvas) {
-        const iconCtx = glueCanvas.getContext("2d");
-        if (iconCtx) {
-          iconCtx.clearRect(0, 0, glueCanvas.width, glueCanvas.height);
-          if (!drawTowerArtSprite(iconCtx, "glue", { x: 48, y: 50, size: 90 })) {
-            iconCtx.save();
-            iconCtx.translate(48, 52);
-            iconCtx.scale(3.5, 3.5);
-            const glueGrad = iconCtx.createLinearGradient(0, -8, 0, 8);
-            glueGrad.addColorStop(0, "#f2b164");
-            glueGrad.addColorStop(0.55, "#d18b46");
-            glueGrad.addColorStop(1, "#a86f31");
-            iconCtx.fillStyle = glueGrad;
-            iconCtx.strokeStyle = "#7a4f21";
-            iconCtx.lineWidth = 1.5;
-            iconCtx.beginPath();
-            iconCtx.roundRect(-8.2, -6.8, 16.4, 13.8, 3.2);
-            iconCtx.fill();
-            iconCtx.stroke();
-            iconCtx.fillStyle = "rgba(255, 232, 182, 0.38)";
-            iconCtx.beginPath();
-            iconCtx.roundRect(-6.6, -4.9, 4.5, 8.8, 1.8);
-            iconCtx.fill();
-            iconCtx.fillStyle = "#9e6a32";
-            iconCtx.beginPath();
-            iconCtx.roundRect(-8.4, -9.3, 16.8, 3.8, 1.8);
-            iconCtx.fill();
-            iconCtx.fillStyle = "#f2d367";
-            iconCtx.beginPath();
-            iconCtx.arc(0, -7.4, 4.4, 0, Math.PI * 2);
-            iconCtx.fill();
-            iconCtx.fillStyle = "#cfb24e";
-            iconCtx.beginPath();
-            iconCtx.arc(1.6, -7.1, 2.5, 0, Math.PI * 2);
-            iconCtx.fill();
-            iconCtx.fillStyle = "#6f4720";
-            iconCtx.beginPath();
-            iconCtx.roundRect(-6.1, 0.8, 12.2, 3.2, 1.1);
-            iconCtx.fill();
-            iconCtx.fillStyle = "#f7e6b8";
-            iconCtx.font = "bold 2.8px Segoe UI";
-            iconCtx.textAlign = "center";
-            iconCtx.textBaseline = "middle";
-            iconCtx.fillText("GLUE", 0, 2.45);
-            iconCtx.restore();
-          }
-        }
-      }
-
-      if (hoseCanvas) {
-        const iconCtx = hoseCanvas.getContext("2d");
-        if (iconCtx) {
-          iconCtx.clearRect(0, 0, hoseCanvas.width, hoseCanvas.height);
-          if (!drawTowerArtSprite(iconCtx, "hose", { x: 48, y: 50, size: 90 })) {
-            iconCtx.save();
-            iconCtx.translate(48, 52);
-            iconCtx.scale(3.4, 3.4);
-            iconCtx.rotate(-0.28);
-            const hoseGrad = iconCtx.createLinearGradient(0, -10, 0, 9);
-            hoseGrad.addColorStop(0, "#7dc6e8");
-            hoseGrad.addColorStop(0.6, "#4a9fc8");
-            hoseGrad.addColorStop(1, "#2f7697");
-            iconCtx.fillStyle = hoseGrad;
-            iconCtx.strokeStyle = "#1f5673";
-            iconCtx.lineWidth = 1.4;
-            iconCtx.beginPath();
-            iconCtx.roundRect(-7.6, -10.2, 15.2, 18.8, 4.2);
-            iconCtx.fill();
-            iconCtx.stroke();
-            iconCtx.fillStyle = "#85d6f2";
-            iconCtx.beginPath();
-            iconCtx.roundRect(-5.6, -3.8, 11.2, 5.8, 2.2);
-            iconCtx.fill();
-            iconCtx.fillStyle = "rgba(230, 251, 255, 0.34)";
-            iconCtx.beginPath();
-            iconCtx.roundRect(-5.1, -2.9, 10.1, 1.6, 0.8);
-            iconCtx.fill();
-            iconCtx.fillStyle = "#d8ecf5";
-            iconCtx.beginPath();
-            iconCtx.roundRect(-3.8, -15.1, 7.6, 5.2, 2.1);
-            iconCtx.fill();
-            iconCtx.strokeStyle = "#557583";
-            iconCtx.stroke();
-            iconCtx.fillStyle = "#2f424d";
-            iconCtx.beginPath();
-            iconCtx.arc(0, -12.2, 1.1, 0, Math.PI * 2);
-            iconCtx.fill();
-            iconCtx.strokeStyle = "#1f5673";
-            iconCtx.lineWidth = 2.3;
-            iconCtx.lineCap = "round";
-            iconCtx.beginPath();
-            iconCtx.moveTo(6.8, -0.4);
-            iconCtx.lineTo(15.4, -0.4);
-            iconCtx.stroke();
-            iconCtx.fillStyle = "#2a7a9d";
-            iconCtx.beginPath();
-            iconCtx.moveTo(15.4, -2.8);
-            iconCtx.lineTo(20.8, -0.4);
-            iconCtx.lineTo(15.4, 2.0);
-            iconCtx.closePath();
-            iconCtx.fill();
-            iconCtx.fillStyle = "#153544";
-            iconCtx.beginPath();
-            iconCtx.roundRect(-6.4, 2.8, 12.8, 2.8, 1.2);
-            iconCtx.fill();
-            iconCtx.fillStyle = "#ebf8ff";
-            iconCtx.font = "bold 3.4px Segoe UI";
-            iconCtx.textAlign = "center";
-            iconCtx.fillText("HOSE", 0, 5.1);
-            iconCtx.restore();
-          }
-        }
-      }
-
-      if (saltCanvas) {
-        const iconCtx = saltCanvas.getContext("2d");
-        if (iconCtx) {
-          iconCtx.clearRect(0, 0, saltCanvas.width, saltCanvas.height);
-          if (!drawTowerArtSprite(iconCtx, "salt", { x: 48, y: 50, size: 94, angle: -0.74 })) {
-            iconCtx.fillStyle = "rgba(241, 244, 250, 0.2)";
-            iconCtx.beginPath();
-            iconCtx.arc(48, 50, 18, 0, Math.PI * 2);
-            iconCtx.fill();
-            iconCtx.save();
-            iconCtx.translate(48, 50);
-            iconCtx.scale(1.95, 1.95);
-            drawTowerPedestal(iconCtx);
-            drawSaltCannonArt(iconCtx, -0.74, 0);
-            iconCtx.restore();
-          }
-        }
-      }
+      towerAssets.renderTowerSelectorIcons({
+        sprayTowerBtn,
+        glueTowerBtn,
+        hoseTowerBtn,
+        saltTowerBtn,
+        renderTowerSelectorIcon: rendering.renderTowerSelectorIcon,
+        drawTowerArtSprite: (drawCtx, type, opts) => drawTowerArtSprite(drawCtx, type, opts)
+      });
     }
 
     function drawTowers() {
       for (const t of towers) {
-        const showRange = t.id === selectedTowerId || (t.showRangeUntil && t.showRangeUntil > frameCount);
-        if (showRange) {
-          ctx.strokeStyle = "rgba(120, 250, 170, 0.42)";
-          ctx.lineWidth = 2.2;
-          ctx.beginPath();
-          ctx.arc(t.x, t.y, t.range, 0, Math.PI * 2);
-          ctx.stroke();
-        }
-
-        if (t.level > 1) {
-          const strength = Math.min(1, (t.level - 1) / 5);
-          ctx.strokeStyle = `rgba(255, 224, 114, ${0.25 + strength * 0.45})`;
-          ctx.lineWidth = 1.5 + strength * 1.5;
-          ctx.beginPath();
-          ctx.arc(t.x, t.y, towerRadius + 5 + strength * 3, 0, Math.PI * 2);
-          ctx.stroke();
-        }
-
-        const idlePulse = 0.12 + (Math.sin(frameCount * 0.08 + t.id * 0.6) + 1) * 0.04;
-        const glowColor = t.type === "glue" ? "255, 214, 120" : (t.type === "hose" ? "132, 228, 255" : (t.type === "salt" ? "241, 244, 250" : "255, 104, 104"));
-        ctx.fillStyle = `rgba(${glowColor}, ${idlePulse})`;
-        ctx.beginPath();
-        ctx.arc(t.x, t.y + 2.5, 16, 0, Math.PI * 2);
-        ctx.fill();
+        rendering.drawTowerRangeAndGlow(ctx, t, selectedTowerId, frameCount, towerRadius);
 
         ctx.save();
         ctx.translate(t.x, t.y);
         ctx.scale(1.5, 1.5);
 
         // Shared pedestal under each tower body.
-        drawTowerPedestal(ctx);
+        rendering.drawTowerPedestal(ctx);
 
         if (t.type === "glue") {
           if (!drawTowerArtSprite(ctx, "glue", { size: 40 })) {
-            const glueGrad = ctx.createLinearGradient(0, -8, 0, 8);
-            glueGrad.addColorStop(0, "#f2b164");
-            glueGrad.addColorStop(0.55, "#d18b46");
-            glueGrad.addColorStop(1, "#a86f31");
-            ctx.fillStyle = glueGrad;
-            ctx.strokeStyle = "#7a4f21";
-            ctx.lineWidth = 1.5;
-            ctx.beginPath();
-            ctx.roundRect(-8.2, -6.8, 16.4, 13.8, 3.2);
-            ctx.fill();
-            ctx.stroke();
-
-            ctx.fillStyle = "rgba(255, 232, 182, 0.38)";
-            ctx.beginPath();
-            ctx.roundRect(-6.6, -4.9, 4.5, 8.8, 1.8);
-            ctx.fill();
-
-            ctx.fillStyle = "#9e6a32";
-            ctx.beginPath();
-            ctx.roundRect(-8.4, -9.3, 16.8, 3.8, 1.8);
-            ctx.fill();
-
-            ctx.fillStyle = "#f2d367";
-            ctx.beginPath();
-            ctx.arc(0, -7.4, 4.4, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.fillStyle = "#cfb24e";
-            ctx.beginPath();
-            ctx.arc(1.6, -7.1, 2.5, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.fillStyle = "#6f4720";
-            ctx.beginPath();
-            ctx.roundRect(-6.1, 0.8, 12.2, 3.2, 1.1);
-            ctx.fill();
-            ctx.fillStyle = "#f7e6b8";
-            ctx.font = "bold 2.8px Segoe UI";
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-            ctx.fillText("GLUE", 0, 2.45);
+            rendering.drawGlueTowerArt(ctx);
           }
         } else if (t.type === "hose") {
           ctx.save();
           ctx.rotate(t.lastAimAngle || 0);
 
           if (!drawTowerArtSprite(ctx, "hose", { size: 44 })) {
-            const hoseGrad = ctx.createLinearGradient(0, -10, 0, 9);
-            hoseGrad.addColorStop(0, "#7dc6e8");
-            hoseGrad.addColorStop(0.6, "#4a9fc8");
-            hoseGrad.addColorStop(1, "#2f7697");
-            ctx.fillStyle = hoseGrad;
-            ctx.strokeStyle = "#1f5673";
-            ctx.lineWidth = 1.4;
-            ctx.beginPath();
-            ctx.roundRect(-7.6, -10.2, 15.2, 18.8, 4.2);
-            ctx.fill();
-            ctx.stroke();
-
-            ctx.fillStyle = "#85d6f2";
-            ctx.beginPath();
-            ctx.roundRect(-5.6, -3.8, 11.2, 5.8, 2.2);
-            ctx.fill();
-
-            ctx.fillStyle = "rgba(230, 251, 255, 0.34)";
-            ctx.beginPath();
-            ctx.roundRect(-5.1, -2.9, 10.1, 1.6, 0.8);
-            ctx.fill();
-
-            ctx.fillStyle = "#d8ecf5";
-            ctx.beginPath();
-            ctx.roundRect(-3.8, -15.1, 7.6, 5.2, 2.1);
-            ctx.fill();
-            ctx.strokeStyle = "#557583";
-            ctx.stroke();
-
-            ctx.fillStyle = "#2f424d";
-            ctx.beginPath();
-            ctx.arc(0, -12.2, 1.1, 0, Math.PI * 2);
-            ctx.fill();
-
-            ctx.strokeStyle = "#1f5673";
-            ctx.lineWidth = 2.3;
-            ctx.lineCap = "round";
-            ctx.beginPath();
-            ctx.moveTo(6.8, -0.4);
-            ctx.lineTo(15.4, -0.4);
-            ctx.stroke();
-
-            ctx.fillStyle = "#2a7a9d";
-            ctx.beginPath();
-            ctx.moveTo(15.4, -2.8);
-            ctx.lineTo(20.8, -0.4);
-            ctx.lineTo(15.4, 2.0);
-            ctx.closePath();
-            ctx.fill();
-
-            ctx.fillStyle = "#153544";
-            ctx.beginPath();
-            ctx.roundRect(-6.4, 2.8, 12.8, 2.8, 1.2);
-            ctx.fill();
-            ctx.fillStyle = "#ebf8ff";
-            ctx.font = "bold 3.4px Segoe UI";
-            ctx.textAlign = "center";
-            ctx.fillText("HOSE", 0, 5.1);
+            rendering.drawHoseTowerArt(ctx);
           }
 
           if (t.laserFlash > 0) {
@@ -4957,11 +4388,11 @@
           ctx.restore();
         } else if (t.type === "salt") {
           if (!drawTowerArtSprite(ctx, "salt", { size: 48, angle: (t.lastAimAngle || 0) - 0.22 })) {
-            drawSaltCannonArt(ctx, (t.lastAimAngle || 0) - 0.22, t.sprayFlash || 0);
+            rendering.drawSaltCannonArt(ctx, (t.lastAimAngle || 0) - 0.22, t.sprayFlash || 0);
           }
         } else {
           if (!drawTowerArtSprite(ctx, "spray", { size: 42, angle: t.lastAimAngle || 0 })) {
-            drawSprayCloudArt(ctx, t.lastAimAngle || 0, t.sprayFlash || 0);
+            rendering.drawSprayCloudArt(ctx, t.lastAimAngle || 0, t.sprayFlash || 0);
           } else if (t.sprayFlash > 0) {
             const sprayAngle = t.lastAimAngle || 0;
             const alpha = 0.14 + (t.sprayFlash / 6) * 0.26;
@@ -4988,28 +4419,7 @@
 
         ctx.restore();
 
-        const pedestalW = 24;
-        const pedestalH = 14;
-        const pedestalX = t.x - pedestalW / 2;
-        const pedestalY = t.y + 15;
-
-        const pedestalGrad = ctx.createLinearGradient(0, pedestalY, 0, pedestalY + pedestalH);
-        pedestalGrad.addColorStop(0, "rgba(28, 36, 44, 0.95)");
-        pedestalGrad.addColorStop(1, "rgba(11, 15, 19, 0.96)");
-        ctx.fillStyle = pedestalGrad;
-        ctx.strokeStyle = "#ffe072";
-        ctx.lineWidth = 1.6;
-        ctx.beginPath();
-        ctx.roundRect(pedestalX, pedestalY, pedestalW, pedestalH, 4);
-        ctx.fill();
-        ctx.stroke();
-
-        ctx.fillStyle = "#ffe072";
-        ctx.font = "700 12px Consolas, 'Courier New', monospace";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.textAlign = "center";
-        ctx.fillText(String(t.level), t.x, pedestalY + pedestalH / 2 + 0.5);
+        rendering.drawTowerLevelBadge(ctx, t);
       }
     }
 
@@ -5376,14 +4786,6 @@
       ctx.fill();
     }
 
-    function getEnemyStyle(type) {
-      return rendering.getEnemyStyle(type);
-    }
-
-    function getEnemyLabel(type) {
-      return rendering.getEnemyLabel(type);
-    }
-
     function drawEnemies() {
       for (const e of enemies) {
         if (e.enemyType === "aphid") drawAphid(e);
@@ -5393,7 +4795,7 @@
         else if (e.enemyType === "caterpillar") drawCaterpillar(e);
         else drawGateCrasher(e);
 
-        const style = getEnemyStyle(e.enemyType);
+        const style = rendering.getEnemyStyle(e.enemyType);
         const overlay = rendering.getEnemyOverlayLayout(e);
         const roleChip = rendering.getPrimaryRoleChip(e);
         rendering.drawEnemyOverlay(ctx, e, overlay, style, frameCount, roleChip);

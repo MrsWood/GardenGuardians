@@ -28,7 +28,15 @@ jobs:
           node-version: 20
 
       - name: Syntax check
-        run: node --check game.js
+        run: |
+          node --check game.config.js
+          node --check simulation.js
+          node --check combat.js
+          node --check persistence.js
+          node --check ui.js
+          node --check rendering.js
+          node --check tower_assets.js
+          node --check game.js
 
       - name: Install Playwright
         run: |
