@@ -2561,6 +2561,8 @@ const canvas = document.getElementById("game");
           yMax,
           roadGradient: null,
           flagstones: [],
+          pathJoints: [],
+          pathPebbles: [],
           flowers: []
         };
         buildFlagstones(lanes[def.id]);
@@ -2869,12 +2871,15 @@ const canvas = document.getElementById("game");
 
     function buildFlagstones(lane) {
       lane.flagstones.length = 0;
+      lane.pathJoints.length = 0;
+      lane.pathPebbles.length = 0;
       for (let d = 14; d < lane.totalLength - 14; d += 24) {
         const p = getPathPointAtDistance(lane.id, d);
         const t = getPathTangentAtDistance(lane.id, d);
         const n = { x: -t.y, y: t.x };
         const lateral = Math.sin(d * 0.09) * roadHalfHeight * 0.22;
         const hue = Math.sin(d * 0.11);
+        const shade = 0.5 + Math.sin(d * 0.037) * 0.5;
 
         lane.flagstones.push({
           x: p.x + n.x * lateral,
@@ -2883,7 +2888,36 @@ const canvas = document.getElementById("game");
           ry: 4.8 + (Math.cos(d * 0.13) + 1) * 1.6,
           rot: Math.atan2(t.y, t.x) + Math.sin(d * 0.07) * 0.35,
           fill: hue > 0 ? "#9ea7b1" : "#8a939d",
-          edge: hue > 0 ? "#6d7682" : "#5f6873"
+          edge: hue > 0 ? "#6d7682" : "#5f6873",
+          innerA: shade > 0.5 ? "rgba(244, 249, 255, 0.16)" : "rgba(220, 232, 244, 0.12)",
+          innerB: shade > 0.5 ? "rgba(43, 51, 64, 0.14)" : "rgba(38, 45, 58, 0.11)",
+          crack: Math.abs(Math.sin(d * 0.041)) > 0.62
+        });
+      }
+
+      for (let d = 18; d < lane.totalLength - 16; d += 30) {
+        const p = getPathPointAtDistance(lane.id, d);
+        const t = getPathTangentAtDistance(lane.id, d);
+        lane.pathJoints.push({
+          x: p.x,
+          y: p.y,
+          angle: Math.atan2(t.y, t.x),
+          len: roadHalfHeight * 1.65 + Math.sin(d * 0.1) * 2.2
+        });
+      }
+
+      for (let d = 10; d < lane.totalLength - 10; d += 14) {
+        const p = getPathPointAtDistance(lane.id, d);
+        const t = getPathTangentAtDistance(lane.id, d);
+        const n = { x: -t.y, y: t.x };
+        const s = Math.sin(d * 0.119);
+        const side = s > 0 ? 1 : -1;
+        const off = roadHalfHeight * (0.88 + (Math.cos(d * 0.071) + 1) * 0.08);
+        lane.pathPebbles.push({
+          x: p.x + n.x * off * side,
+          y: p.y + n.y * off * side,
+          r: 0.6 + (Math.sin(d * 0.083) + 1) * 0.7,
+          a: 0.1 + (Math.cos(d * 0.137) + 1) * 0.09
         });
       }
     }
@@ -3729,6 +3763,18 @@ const canvas = document.getElementById("game");
         ctx.lineWidth = roadHalfHeight * 2;
         ctx.stroke(lanePath);
 
+        // Soft paving bed tint and wear for depth.
+        ctx.save();
+        ctx.globalCompositeOperation = "soft-light";
+        ctx.strokeStyle = "rgba(190, 204, 222, 0.12)";
+        ctx.lineWidth = Math.max(3, roadHalfHeight * 0.95);
+        ctx.stroke(lanePath);
+        ctx.globalCompositeOperation = "multiply";
+        ctx.strokeStyle = "rgba(56, 66, 80, 0.16)";
+        ctx.lineWidth = Math.max(2, roadHalfHeight * 0.55);
+        ctx.stroke(lanePath);
+        ctx.restore();
+
         // Soft edge highlights for a cleaner, more dimensional path
         ctx.strokeStyle = "rgba(240, 248, 255, 0.22)";
         ctx.lineWidth = 1.4;
@@ -3738,17 +3784,108 @@ const canvas = document.getElementById("game");
         ctx.lineWidth = Math.max(1, roadHalfHeight * 0.6);
         ctx.stroke(lanePath);
 
+        if (cfg.terrain === "snow") {
+          // Frost buildup hugging both road shoulders.
+          ctx.save();
+          ctx.globalCompositeOperation = "screen";
+          ctx.strokeStyle = "rgba(236, 247, 255, 0.4)";
+          ctx.lineWidth = Math.max(2.2, roadHalfHeight * 0.36);
+          ctx.stroke(lanePath);
+          ctx.strokeStyle = "rgba(170, 197, 224, 0.26)";
+          ctx.lineWidth = Math.max(3.6, roadHalfHeight * 0.52);
+          ctx.stroke(lanePath);
+          ctx.restore();
+
+          // Compacted snow ruts for a trampled/worn winter lane look.
+          ctx.save();
+          ctx.strokeStyle = "rgba(118, 140, 166, 0.24)";
+          ctx.lineWidth = Math.max(1.3, roadHalfHeight * 0.2);
+          for (const seg of lane.segments) {
+            const dx = seg.b.x - seg.a.x;
+            const dy = seg.b.y - seg.a.y;
+            const len = Math.max(0.0001, Math.hypot(dx, dy));
+            const nx = -dy / len;
+            const ny = dx / len;
+            const inset = Math.max(2.2, roadHalfHeight * 0.22);
+            ctx.beginPath();
+            ctx.moveTo(seg.a.x + nx * inset, seg.a.y + ny * inset);
+            ctx.lineTo(seg.b.x + nx * inset, seg.b.y + ny * inset);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(seg.a.x - nx * inset, seg.a.y - ny * inset);
+            ctx.lineTo(seg.b.x - nx * inset, seg.b.y - ny * inset);
+            ctx.stroke();
+          }
+          ctx.restore();
+        }
+
+        // Subtle paving joints crossing the path.
+        for (const joint of lane.pathJoints || []) {
+          const nx = -Math.sin(joint.angle);
+          const ny = Math.cos(joint.angle);
+          const jh = joint.len * 0.5;
+          ctx.strokeStyle = "rgba(68, 77, 92, 0.26)";
+          ctx.lineWidth = 1.1;
+          ctx.beginPath();
+          ctx.moveTo(joint.x - nx * jh, joint.y - ny * jh);
+          ctx.lineTo(joint.x + nx * jh, joint.y + ny * jh);
+          ctx.stroke();
+
+          ctx.strokeStyle = "rgba(220, 232, 246, 0.1)";
+          ctx.lineWidth = 0.7;
+          ctx.beginPath();
+          ctx.moveTo(joint.x - nx * jh + 0.4, joint.y - ny * jh + 0.4);
+          ctx.lineTo(joint.x + nx * jh + 0.4, joint.y + ny * jh + 0.4);
+          ctx.stroke();
+        }
+
+        // Tiny edge pebbles to blend path into surrounding terrain.
+        for (const pebble of lane.pathPebbles || []) {
+          if (cfg.terrain === "snow") {
+            ctx.fillStyle = `rgba(235, 245, 255, ${Math.min(0.36, pebble.a + 0.08)})`;
+          } else {
+            ctx.fillStyle = `rgba(206, 217, 228, ${pebble.a})`;
+          }
+          ctx.beginPath();
+          ctx.arc(pebble.x, pebble.y, pebble.r, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
         for (const stone of lane.flagstones) {
           ctx.save();
           ctx.translate(stone.x, stone.y);
           ctx.rotate(stone.rot);
-          ctx.fillStyle = stone.fill;
+          const stoneGrad = ctx.createLinearGradient(-stone.rx, -stone.ry, stone.rx, stone.ry);
+          stoneGrad.addColorStop(0, stone.fill);
+          stoneGrad.addColorStop(1, stone.edge);
+          ctx.fillStyle = stoneGrad;
           ctx.strokeStyle = stone.edge;
           ctx.lineWidth = 1.1;
           ctx.beginPath();
           ctx.ellipse(0, 0, stone.rx, stone.ry, 0, 0, Math.PI * 2);
           ctx.fill();
           ctx.stroke();
+
+          ctx.fillStyle = stone.innerA;
+          ctx.beginPath();
+          ctx.ellipse(-stone.rx * 0.22, -stone.ry * 0.24, stone.rx * 0.44, stone.ry * 0.34, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = stone.innerB;
+          ctx.beginPath();
+          ctx.ellipse(stone.rx * 0.2, stone.ry * 0.26, stone.rx * 0.48, stone.ry * 0.34, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          if (stone.crack) {
+            ctx.strokeStyle = "rgba(52, 61, 72, 0.35)";
+            ctx.lineWidth = 0.8;
+            ctx.beginPath();
+            ctx.moveTo(-stone.rx * 0.36, -stone.ry * 0.08);
+            ctx.lineTo(stone.rx * 0.34, stone.ry * 0.14);
+            ctx.moveTo(stone.rx * 0.05, -stone.ry * 0.26);
+            ctx.lineTo(stone.rx * 0.26, stone.ry * 0.02);
+            ctx.stroke();
+          }
           ctx.restore();
         }
 
@@ -4032,6 +4169,14 @@ const canvas = document.getElementById("game");
       ctx.fillStyle = sceneTopWashGradient;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.fillStyle = sceneVignetteGradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Directional sunlight sweep for depth.
+      const sunSweep = ctx.createLinearGradient(0, 0, canvas.width, canvas.height * 0.9);
+      sunSweep.addColorStop(0, "rgba(255, 248, 220, 0.07)");
+      sunSweep.addColorStop(0.45, "rgba(255, 255, 255, 0.02)");
+      sunSweep.addColorStop(1, "rgba(34, 50, 72, 0.07)");
+      ctx.fillStyle = sunSweep;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
 
