@@ -384,6 +384,7 @@ const canvas = document.getElementById("game");
     const waveSummaryEl = document.getElementById("waveSummary");
     const waveSummaryTitleEl = document.getElementById("waveSummaryTitle");
     const waveSummaryBodyEl = document.getElementById("waveSummaryBody");
+    const flawlessCalloutEl = document.getElementById("flawlessCallout");
     const scorePanelEl = document.getElementById("scorePanel");
     const scoreNameInputEl = document.getElementById("scoreNameInput");
     const submitScoreBtn = document.getElementById("submitScoreBtn");
@@ -428,11 +429,14 @@ const canvas = document.getElementById("game");
     const landingTutorialBtn = document.getElementById("landingTutorialBtn");
     const landingLevelSelect = document.getElementById("landingLevelSelect");
     const landingContinueBtn = document.getElementById("landingContinueBtn");
+    const landingHintEl = document.querySelector(".landingHint");
     const shellEl = document.querySelector(".shell");
     const startBtn = document.getElementById("startBtn");
     const startBtnGlyphEl = document.getElementById("startBtnGlyph");
     const startBtnMainEl = document.getElementById("startBtnMain");
     const pauseBtn = document.getElementById("pauseBtn");
+    const flawlessChipEl = document.getElementById("flawlessChip");
+    const flawlessChipTextEl = document.getElementById("flawlessChipText");
     const tutorialOverlayEl = document.getElementById("tutorialOverlay");
     const tutorialStepPlaceEl = document.getElementById("tutorialStepPlace");
     const tutorialStepWaveEl = document.getElementById("tutorialStepWave");
@@ -445,6 +449,7 @@ const canvas = document.getElementById("game");
     const towerFloatCardEl = document.getElementById("towerFloatCard");
     const towerFloatUpgradeBtn = document.getElementById("towerFloatUpgradeBtn");
     const towerFloatSellBtn = document.getElementById("towerFloatSellBtn");
+    const towerFloatSellLabelEl = document.getElementById("towerFloatSellLabel");
     const towerFloatSellValEl = document.getElementById("towerFloatSellVal");
     const towerFloatUpgradeValEl = document.getElementById("towerFloatUpgradeVal");
     const isCoarsePointer = (window.matchMedia && window.matchMedia("(pointer: coarse)").matches) || (navigator.maxTouchPoints || 0) > 0;
@@ -457,6 +462,7 @@ const canvas = document.getElementById("game");
     let towers;
     let bullets;
     let gluePatches;
+    let impactBursts;
     let bunnies;
     let implosions;
     let craters;
@@ -498,9 +504,14 @@ const canvas = document.getElementById("game");
     let currentWaveDamageDealt;
     let waveSummaryHideTimer;
     let waveCalloutHideTimer;
+    let flawlessCalloutHideTimer;
+    let flawlessChipCelebrateUntil;
+    let flawlessChipCelebrateAmount;
     let waveSummaryLockUntil;
     let towerFloatHideAt;
     let towerFloatHover;
+    let towerSellConfirmTowerId;
+    let towerSellConfirmUntil;
     let autosaveIntervalId;
     let profileData;
     let tutorialProgress;
@@ -553,7 +564,10 @@ const canvas = document.getElementById("game");
       clearBonusBase: 8,
       clearBonusPerWave: 1.8,
       clearBonusBossAdd: 6,
-      clearBonusVegPenalty: 3
+      clearBonusVegPenalty: 4,
+      clearBonusFlawless: 5,
+      reserveBonusRate: 0.045,
+      reserveBonusCap: 14
     };
 
     const towerCosts = {
@@ -593,6 +607,7 @@ const canvas = document.getElementById("game");
         bossArmorAdd: -0.08,
         bossGlueResistAdd: -0.16,
         clearBonusMul: 1.12,
+        upgradeCostMul: 0.92,
         bunnyCooldownBase: 480,
         bunnyCooldownJitter: 280
       },
@@ -609,6 +624,7 @@ const canvas = document.getElementById("game");
         bossArmorAdd: 0,
         bossGlueResistAdd: 0,
         clearBonusMul: 1,
+        upgradeCostMul: 1,
         bunnyCooldownBase: 360,
         bunnyCooldownJitter: 240
       },
@@ -625,6 +641,7 @@ const canvas = document.getElementById("game");
         bossArmorAdd: 0.12,
         bossGlueResistAdd: 0.14,
         clearBonusMul: 0.9,
+        upgradeCostMul: 1.1,
         bunnyCooldownBase: 280,
         bunnyCooldownJitter: 180
       }
@@ -682,8 +699,40 @@ const canvas = document.getElementById("game");
         audioEnabled: true,
         musicEnabled: true,
         sfxVolume: 0.65,
-        musicVolume: 0.3
+        musicVolume: 0.3,
+        career: {
+          wavesCleared: 0,
+          bugsDefeated: 0,
+          coinsFromKills: 0,
+          coinsFromBonus: 0,
+          bankedTotal: 0,
+          bestWave: 0,
+          bestBank: 0
+        }
       };
+    }
+
+    function ensureCareerStats(profile) {
+      const defaults = getDefaultProfileData().career;
+      if (!profile.career || typeof profile.career !== "object") {
+        profile.career = { ...defaults };
+      } else {
+        profile.career = {
+          ...defaults,
+          ...profile.career
+        };
+      }
+      for (const key of Object.keys(defaults)) {
+        const v = Number(profile.career[key]);
+        profile.career[key] = Number.isFinite(v) ? Math.max(0, Math.round(v)) : 0;
+      }
+      return profile.career;
+    }
+
+    function syncLandingCareerHint() {
+      if (!landingHintEl) return;
+      const c = ensureCareerStats(profileData || getDefaultProfileData());
+      landingHintEl.textContent = `Tip: Build towers, start waves early for +25% bonus, and bank leftover money. Career: Waves ${c.wavesCleared} • Bugs ${c.bugsDefeated} • Banked $${c.bankedTotal} • Best Wave ${c.bestWave}.`;
     }
 
     function loadProfileData() {
@@ -713,12 +762,14 @@ const canvas = document.getElementById("game");
       if (!Number.isFinite(loaded.sfxVolume)) loaded.sfxVolume = 0.65;
       loaded.musicVolume = Math.max(0, Math.min(1, Number(loaded.musicVolume)));
       if (!Number.isFinite(loaded.musicVolume)) loaded.musicVolume = 0.3;
+      ensureCareerStats(loaded);
       profileData = loaded;
       return loaded;
     }
 
     function saveProfileData() {
       if (!profileData) profileData = getDefaultProfileData();
+      ensureCareerStats(profileData);
       profileData.version = saveSchemaVersion;
       profileData.lastDifficulty = difficultyKey || profileData.lastDifficulty || "normal";
       profileData.lastLevel = Number(levelNumber) || profileData.lastLevel || 1;
@@ -730,6 +781,7 @@ const canvas = document.getElementById("game");
       } catch {
         setStatus("Profile save failed: browser storage is full.", "danger");
       }
+      syncLandingCareerHint();
     }
 
     function updateAudioGains() {
@@ -1543,6 +1595,7 @@ const canvas = document.getElementById("game");
       towers = [];
       bullets = [];
       gluePatches = [];
+      impactBursts = [];
       bunnies = [];
       implosions = [];
       craters = [];
@@ -1587,9 +1640,13 @@ const canvas = document.getElementById("game");
       currentWaveRewardEarned = 0;
       currentWaveStartLives = lives || 0;
       currentWaveDamageDealt = 0;
+      flawlessChipCelebrateUntil = 0;
+      flawlessChipCelebrateAmount = 0;
       waveSummaryLockUntil = 0;
       towerFloatHideAt = 0;
       towerFloatHover = false;
+      towerSellConfirmTowerId = null;
+      towerSellConfirmUntil = 0;
       tutorialProgress = getDefaultTutorialProgress();
       runtimeCrashed = false;
       scorePanelEl.style.display = "none";
@@ -1604,11 +1661,18 @@ const canvas = document.getElementById("game");
         clearTimeout(waveCalloutHideTimer);
         waveCalloutHideTimer = null;
       }
+      if (flawlessCalloutHideTimer) {
+        clearTimeout(flawlessCalloutHideTimer);
+        flawlessCalloutHideTimer = null;
+      }
+      flawlessChipCelebrateUntil = 0;
+      flawlessChipCelebrateAmount = 0;
       if (waveSummaryEl) waveSummaryEl.classList.remove("show");
       if (waveCalloutEl) {
         waveCalloutEl.classList.remove("show", "boss", "final");
         waveCalloutEl.textContent = "";
       }
+      if (flawlessCalloutEl) flawlessCalloutEl.classList.remove("show");
       if (shellEl) shellEl.classList.remove("uiQuiet");
       renderTutorialProgress();
       if (uiFadeTimer) {
@@ -1725,9 +1789,13 @@ const canvas = document.getElementById("game");
       currentWaveRewardEarned = Number(run.currentWaveRewardEarned) || 0;
       currentWaveStartLives = Number(run.currentWaveStartLives) || lives;
       currentWaveDamageDealt = Number(run.currentWaveDamageDealt) || 0;
+      flawlessChipCelebrateUntil = 0;
+      flawlessChipCelebrateAmount = 0;
       waveSummaryLockUntil = 0;
       towerFloatHideAt = 0;
       towerFloatHover = false;
+      towerSellConfirmTowerId = null;
+      towerSellConfirmUntil = 0;
       nextLevelPending = Number(run.nextLevelPending) || null;
       tutorialProgress = {
         ...getDefaultTutorialProgress(),
@@ -1738,6 +1806,7 @@ const canvas = document.getElementById("game");
       enemies = Array.isArray(run.enemies) ? run.enemies : [];
       bullets = Array.isArray(run.bullets) ? run.bullets : [];
       gluePatches = Array.isArray(run.gluePatches) ? run.gluePatches : [];
+      impactBursts = [];
       bunnies = Array.isArray(run.bunnies) ? run.bunnies : [];
       implosions = Array.isArray(run.implosions) ? run.implosions : [];
       craters = Array.isArray(run.craters) ? run.craters : [];
@@ -1855,6 +1924,24 @@ const canvas = document.getElementById("game");
       const activeThreats = enemies.reduce((count, e) => count + (e.state === "leaving" ? 0 : 1), 0);
       enemyCountEl.textContent = activeThreats;
       difficultyStatEl.textContent = profile.label;
+      const now = Date.now();
+      const activeWave = !gameOver && !levelComplete && wave > lastClearedWave;
+      const waveVegLostNow = Math.max(0, (currentWaveStartLives || lives) - lives);
+      let flawlessState = "ready";
+      let chipText = wave > 0 ? "Next Wave" : "Flawless";
+      if (now < (flawlessChipCelebrateUntil || 0) && (flawlessChipCelebrateAmount || 0) > 0) {
+        flawlessState = "earned";
+        chipText = `+$${flawlessChipCelebrateAmount}`;
+      } else if (activeWave && waveVegLostNow === 0) {
+        flawlessState = "ontrack";
+        chipText = "On Track";
+      } else if (activeWave && waveVegLostNow > 0) {
+        flawlessState = "lost";
+        chipText = "Lost";
+      }
+
+      if (flawlessChipEl) flawlessChipEl.dataset.state = flawlessState;
+      if (flawlessChipTextEl) flawlessChipTextEl.textContent = chipText;
       syncDifficultyHint();
       syncTowerAffordability();
       startBtn.disabled = gameOver || (levelComplete && !nextLevelPending);
@@ -1991,6 +2078,70 @@ const canvas = document.getElementById("game");
       }, duration);
     }
 
+    function showFlawlessCallout(amount, duration = 1500) {
+      if (!flawlessCalloutEl || !Number.isFinite(amount) || amount <= 0) return;
+      flawlessCalloutEl.textContent = `FLAWLESS +$${Math.round(amount)}`;
+      flawlessCalloutEl.classList.add("show");
+      if (flawlessCalloutHideTimer) clearTimeout(flawlessCalloutHideTimer);
+      flawlessCalloutHideTimer = setTimeout(() => {
+        flawlessCalloutEl.classList.remove("show");
+      }, Math.max(700, duration));
+    }
+
+    function showMoneyGainFx(text, variant = "bonus", delayMs = 0) {
+      if (!moneyEl || !text) return;
+      const spawn = () => {
+        const anchor = moneyEl.closest(".overlayStat");
+        if (!anchor) return;
+        const rect = anchor.getBoundingClientRect();
+        const fx = document.createElement("div");
+        fx.className = `moneyGainFx${variant === "flawless" ? " flawless" : ""}`;
+        fx.textContent = text;
+        fx.style.left = `${Math.round(rect.left + rect.width * 0.55)}px`;
+        fx.style.top = `${Math.round(rect.top - 2)}px`;
+        document.body.appendChild(fx);
+        fx.addEventListener("animationend", () => {
+          if (fx.parentNode) fx.parentNode.removeChild(fx);
+        }, { once: true });
+        setTimeout(() => {
+          if (fx.parentNode) fx.parentNode.removeChild(fx);
+        }, 1500);
+      };
+      if (delayMs > 0) setTimeout(spawn, delayMs);
+      else spawn();
+    }
+
+    function triggerFlawlessChipReward(amount) {
+      if (!flawlessChipEl || !moneyEl || !Number.isFinite(amount) || amount <= 0) return;
+      flawlessChipCelebrateUntil = Date.now() + 1300;
+      flawlessChipCelebrateAmount = Math.max(0, Math.round(amount));
+      flawlessChipEl.dataset.state = "earned";
+      if (flawlessChipTextEl) flawlessChipTextEl.textContent = `+$${flawlessChipCelebrateAmount}`;
+
+      const startRect = flawlessChipEl.getBoundingClientRect();
+      const targetAnchor = moneyEl.closest(".overlayStat") || moneyEl;
+      const targetRect = targetAnchor.getBoundingClientRect();
+      const fly = document.createElement("div");
+      fly.className = "flawlessChipFly";
+      fly.textContent = `FLAWLESS +$${flawlessChipCelebrateAmount}`;
+      fly.style.left = `${Math.round(startRect.left + startRect.width * 0.5)}px`;
+      fly.style.top = `${Math.round(startRect.top + startRect.height * 0.5)}px`;
+      document.body.appendChild(fly);
+
+      const tx = Math.round((targetRect.left + targetRect.width * 0.5) - (startRect.left + startRect.width * 0.5));
+      const ty = Math.round((targetRect.top + targetRect.height * 0.5) - (startRect.top + startRect.height * 0.5));
+      requestAnimationFrame(() => {
+        fly.style.transform = `translate(${tx}px, ${ty}px) scale(0.68)`;
+        fly.style.opacity = "0";
+      });
+
+      const cleanup = () => {
+        if (fly.parentNode) fly.parentNode.removeChild(fly);
+      };
+      fly.addEventListener("transitionend", cleanup, { once: true });
+      setTimeout(cleanup, 760);
+    }
+
     function showWaveSummary(summary, opts = {}) {
       if (!waveSummaryEl || !waveSummaryTitleEl || !waveSummaryBodyEl) return;
       waveSummaryTitleEl.textContent = summary.title;
@@ -2102,10 +2253,14 @@ const canvas = document.getElementById("game");
     }
 
     function getUpgradeCost(tower) {
-      if (tower.type === "glue") return 30 + tower.level * 16;
-      if (tower.type === "hose") return 46 + tower.level * 22;
-      if (tower.type === "salt") return 44 + tower.level * 20;
-      return 29 + tower.level * 16;
+      const profile = getDifficultyProfile();
+      const levelScale = 1 + Math.max(0, (Number(levelNumber) || 1) - 1) * 0.03;
+      const diffScale = Number.isFinite(profile.upgradeCostMul) ? profile.upgradeCostMul : 1;
+      let base = 29 + tower.level * 16;
+      if (tower.type === "glue") base = 30 + tower.level * 16;
+      else if (tower.type === "hose") base = 46 + tower.level * 22;
+      else if (tower.type === "salt") base = 44 + tower.level * 20;
+      return Math.max(1, Math.round(base * levelScale * diffScale));
     }
 
     function getTowerSellValue(tower) {
@@ -2137,6 +2292,7 @@ const canvas = document.getElementById("game");
       }
 
       money -= cost;
+      clearTowerSellConfirm();
       chosen.totalSpent = (chosen.totalSpent || 0) + cost;
       chosen.level += 1;
       if (chosen.type === "glue") {
@@ -2170,6 +2326,34 @@ const canvas = document.getElementById("game");
       return true;
     }
 
+    function clearTowerSellConfirm() {
+      towerSellConfirmTowerId = null;
+      towerSellConfirmUntil = 0;
+      if (towerFloatSellBtn) towerFloatSellBtn.classList.remove("armed");
+      if (towerFloatSellLabelEl) towerFloatSellLabelEl.textContent = "Sell";
+    }
+
+    function requestSellTowerConfirm(id) {
+      const tower = towers.find(t => t.id === id);
+      if (!tower) {
+        setStatus("No tower selected to sell.", "warn");
+        return false;
+      }
+      const value = getTowerSellValue(tower);
+      if (towerSellConfirmTowerId === id && Date.now() < (towerSellConfirmUntil || 0)) {
+        clearTowerSellConfirm();
+        sellTowerById(id);
+        return true;
+      }
+      towerSellConfirmTowerId = id;
+      towerSellConfirmUntil = Date.now() + 2200;
+      showTowerFloatCardBriefly(2400);
+      if (towerFloatSellBtn) towerFloatSellBtn.classList.add("armed");
+      if (towerFloatSellLabelEl) towerFloatSellLabelEl.textContent = "Confirm";
+      setStatus(`Confirm sell: tap Sell again to sell for $${value}.`, "warn");
+      return false;
+    }
+
     function sellTowerById(id) {
       const idx = towers.findIndex(t => t.id === id);
       if (idx < 0) {
@@ -2181,6 +2365,7 @@ const canvas = document.getElementById("game");
       money += value;
       towers.splice(idx, 1);
       selectedTowerId = null;
+      clearTowerSellConfirm();
       setStatus(`Sold ${getTowerDisplayName(tower.type)} for $${value}.`, "good");
       syncHUD();
       saveRunSnapshot();
@@ -2231,7 +2416,11 @@ const canvas = document.getElementById("game");
         strengthMul,
         role: stats.role || "",
         hitFlash: 0,
-        slowFlash: 0
+        hitColor: "rgba(255, 224, 224, 0.9)",
+        hitType: "spray",
+        slowFlash: 0,
+        slowStatusTimer: 0,
+        jamStatusTimer: 0
       };
     }
 
@@ -2356,10 +2545,12 @@ const canvas = document.getElementById("game");
       if (!towerFloatCardEl) return;
       const selected = towers.find(t => t.id === selectedTowerId);
       if (!selected || !gameStarted || gameOver) {
+        clearTowerSellConfirm();
         towerFloatCardEl.hidden = true;
         return;
       }
       if (!towerFloatHover && towerFloatHideAt > 0 && Date.now() > towerFloatHideAt) {
+        clearTowerSellConfirm();
         towerFloatCardEl.hidden = true;
         return;
       }
@@ -2369,16 +2560,27 @@ const canvas = document.getElementById("game");
       const isMax = selected.level >= 6;
       const upgradeCost = isMax ? 0 : getUpgradeCost(selected);
       const canAfford = isMax ? false : money >= upgradeCost;
+      if (towerSellConfirmTowerId && towerSellConfirmTowerId !== selected.id) {
+        clearTowerSellConfirm();
+      }
+      if (towerSellConfirmUntil && Date.now() >= towerSellConfirmUntil) {
+        clearTowerSellConfirm();
+      }
+      const sellArmed = towerSellConfirmTowerId === selected.id && Date.now() < (towerSellConfirmUntil || 0);
 
       if (towerFloatUpgradeBtn) {
         towerFloatUpgradeBtn.title = isMax ? `${name} L${selected.level} maxed` : `${name} L${selected.level} upgrade $${upgradeCost}`;
         towerFloatUpgradeBtn.disabled = isMax || !canAfford;
       }
       if (towerFloatSellBtn) {
-        towerFloatSellBtn.title = `${name} L${selected.level} sell for $${sellValue}`;
+        towerFloatSellBtn.title = sellArmed
+          ? `Tap again to confirm selling for $${sellValue}`
+          : `${name} L${selected.level} sell for $${sellValue}`;
         towerFloatSellBtn.disabled = false;
+        towerFloatSellBtn.classList.toggle("armed", !!sellArmed);
       }
-      if (towerFloatSellValEl) towerFloatSellValEl.textContent = `$${sellValue}`;
+      if (towerFloatSellLabelEl) towerFloatSellLabelEl.textContent = sellArmed ? "Confirm" : "Sell";
+      if (towerFloatSellValEl) towerFloatSellValEl.textContent = sellArmed ? `$${sellValue}?` : `$${sellValue}`;
       if (towerFloatUpgradeValEl) towerFloatUpgradeValEl.textContent = isMax ? "MAX" : `$${upgradeCost}`;
 
       towerFloatCardEl.hidden = false;
@@ -3234,6 +3436,13 @@ const canvas = document.getElementById("game");
         waveSummaryHideTimer = null;
       }
       if (waveSummaryEl) waveSummaryEl.classList.remove("show");
+      if (flawlessCalloutHideTimer) {
+        clearTimeout(flawlessCalloutHideTimer);
+        flawlessCalloutHideTimer = null;
+      }
+      if (flawlessCalloutEl) flawlessCalloutEl.classList.remove("show");
+      flawlessChipCelebrateUntil = 0;
+      flawlessChipCelebrateAmount = 0;
 
       wave += 1;
       if (wave === 1) markTutorialProgress("startedWave");
@@ -3372,14 +3581,66 @@ const canvas = document.getElementById("game");
       return best;
     }
 
+    function getHitFeedbackColor(sourceType) {
+      if (sourceType === "hose") return "rgba(90, 190, 255, 0.95)";
+      if (sourceType === "glue") return "rgba(247, 193, 94, 0.92)";
+      if (sourceType === "salt") return "rgba(232, 239, 250, 0.95)";
+      return "rgba(255, 116, 116, 0.92)";
+    }
+
+    function spawnImpactBurst(x, y, color, count, spread, speedBase, sizeBase, lifeBase) {
+      if (!impactBursts) impactBursts = [];
+      const n = Math.max(3, Math.min(16, Math.round(count || 6)));
+      for (let i = 0; i < n; i += 1) {
+        const a = Math.random() * Math.PI * 2;
+        const speed = speedBase + Math.random() * spread;
+        impactBursts.push({
+          x,
+          y,
+          vx: Math.cos(a) * speed,
+          vy: Math.sin(a) * speed,
+          life: lifeBase + Math.floor(Math.random() * 4),
+          maxLife: lifeBase + 3,
+          size: sizeBase + Math.random() * 1.6,
+          color
+        });
+      }
+      if (impactBursts.length > 700) {
+        impactBursts.splice(0, impactBursts.length - 700);
+      }
+    }
+
+    function applyEnemyDamage(enemy, damage, sourceType = "spray") {
+      if (!enemy) return 0;
+      const armor = enemy.armor || 0;
+      const dealt = Math.max(0, damage * (1 - armor));
+      if (dealt <= 0) return 0;
+      enemy.hp -= dealt;
+      enemy.hitFlash = Math.max(enemy.hitFlash || 0, 8);
+      enemy.hitColor = getHitFeedbackColor(sourceType);
+      enemy.hitType = sourceType;
+      spawnImpactBurst(enemy.x, enemy.y, enemy.hitColor, sourceType === "hose" ? 6 : 8, 0.8, 0.8, 1.8, 11);
+      currentWaveDamageDealt += dealt;
+      if (enemy.enemyType === "gatecrasher") playSfx("bossHit");
+      return dealt;
+    }
+
     function removeEnemyAtIndex(enemyIndex, rewardOnDefeat = false) {
       if (enemyIndex < 0 || enemyIndex >= enemies.length) return;
       const enemy = enemies[enemyIndex];
       releaseVegetableReservation(enemy);
+      const style = getEnemyStyle(enemy.enemyType);
+      const deathColor = enemy.hitColor || style.hp || "rgba(255, 196, 130, 0.9)";
+      spawnImpactBurst(enemy.x, enemy.y, deathColor, enemy.enemyType === "gatecrasher" ? 14 : 10, 1.15, 1.2, 2.2, 14);
       if (rewardOnDefeat) {
         money += enemy.reward;
         currentWaveKillCount += 1;
         currentWaveRewardEarned += enemy.reward;
+        if (profileData) {
+          const c = ensureCareerStats(profileData);
+          c.bugsDefeated += 1;
+          c.coinsFromKills += Math.max(0, Math.round(enemy.reward));
+        }
         playSfx("defeat");
       }
       enemies.splice(enemyIndex, 1);
@@ -3405,6 +3666,15 @@ const canvas = document.getElementById("game");
         implosions[i].life -= 1;
         if (implosions[i].life <= 0) implosions.splice(i, 1);
       }
+      for (let i = impactBursts.length - 1; i >= 0; i -= 1) {
+        const p = impactBursts[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vx *= 0.93;
+        p.vy *= 0.93;
+        p.life -= 1;
+        if (p.life <= 0) impactBursts.splice(i, 1);
+      }
 
       for (const veg of gardenVegetables) {
         if (veg.chewFlash > 0) veg.chewFlash -= 1;
@@ -3419,6 +3689,8 @@ const canvas = document.getElementById("game");
         const e = enemies[i];
         e.hitFlash = Math.max(0, (e.hitFlash || 0) - 1);
         e.slowFlash = Math.max(0, (e.slowFlash || 0) - 1);
+        e.slowStatusTimer = Math.max(0, (e.slowStatusTimer || 0) - 1);
+        e.jamStatusTimer = Math.max(0, (e.jamStatusTimer || 0) - 1);
         if (e.state === "path") {
           const lane = getLane(e.laneId);
           if (!lane || !Number.isFinite(lane.totalLength) || lane.totalLength <= 0) {
@@ -3440,7 +3712,13 @@ const canvas = document.getElementById("game");
               glueContact = true;
             }
           }
-          if (glueContact) e.slowFlash = Math.max(e.slowFlash || 0, 8);
+          if (glueContact) {
+            e.slowFlash = Math.max(e.slowFlash || 0, 8);
+            e.slowStatusTimer = Math.max(e.slowStatusTimer || 0, 16);
+          }
+          if (e.enemyType === "mantis") {
+            e.jamStatusTimer = Math.max(e.jamStatusTimer || 0, 18);
+          }
 
           e.pathDist += e.speed * speedFactor;
           const pos = getPathPointAtDistance(e.laneId, e.pathDist);
@@ -3566,12 +3844,7 @@ const canvas = document.getElementById("game");
               const hitRadius = enemyRadius * (e.sizeMul || 1);
               const distToBeam = pointToSegmentDistance(e.x, e.y, t.x, t.y, endX, endY);
               if (distToBeam <= hitRadius + t.beamWidth) {
-                const armor = e.armor || 0;
-                const dealt = Math.max(0, t.damage * (1 - armor));
-                e.hp -= dealt;
-                currentWaveDamageDealt += dealt;
-                e.hitFlash = Math.max(e.hitFlash || 0, 7);
-                if (e.enemyType === "gatecrasher") playSfx("bossHit");
+                applyEnemyDamage(e, t.damage, "hose");
                 if (e.hp <= 0) {
                   removeEnemyAtIndex(ei, true);
                 }
@@ -3654,12 +3927,7 @@ const canvas = document.getElementById("game");
 
         if (hitEnemyIdx >= 0) {
           const hitEnemy = enemies[hitEnemyIdx];
-          const armor = hitEnemy.armor || 0;
-          const dealt = Math.max(0, b.damage * (1 - armor));
-          hitEnemy.hp -= dealt;
-          currentWaveDamageDealt += dealt;
-          hitEnemy.hitFlash = Math.max(hitEnemy.hitFlash || 0, 7);
-          if (hitEnemy.enemyType === "gatecrasher") playSfx("bossHit");
+          applyEnemyDamage(hitEnemy, b.damage, b.kind === "salt" ? "salt" : "spray");
           bullets.splice(i, 1);
           if (hitEnemy.hp <= 0) {
             removeEnemyAtIndex(hitEnemyIdx, true);
@@ -3677,15 +3945,32 @@ const canvas = document.getElementById("game");
         const profile = getDifficultyProfile();
         const waveBossFlag = currentWaveHasBoss;
         const waveVegLost = Math.max(0, currentWaveStartLives - lives);
-        const baseBonus = waveBalance.clearBonusBase + Math.round(wave * waveBalance.clearBonusPerWave) + (waveBossFlag ? waveBalance.clearBonusBossAdd : 0);
+        const flawlessBonus = waveVegLost === 0
+          ? Math.round(waveBalance.clearBonusFlawless + wave * 0.45 + (waveBossFlag ? 2 : 0))
+          : 0;
+        const reserveCap = Math.round(waveBalance.reserveBonusCap + wave * 0.55 + (waveBossFlag ? 2 : 0));
+        const reserveBonus = Math.max(0, Math.min(reserveCap, Math.round(money * waveBalance.reserveBonusRate)));
+        const baseBonus = waveBalance.clearBonusBase + Math.round(wave * waveBalance.clearBonusPerWave) + (waveBossFlag ? waveBalance.clearBonusBossAdd : 0) + flawlessBonus;
         const levelClearBonusMul = Number.isFinite(lvl.clearBonusMul) ? lvl.clearBonusMul : 1;
         const scaledBonus = Math.max(0, Math.round(baseBonus * (profile.clearBonusMul || 1) * levelClearBonusMul));
-        const cleanDefenseBonus = Math.max(0, scaledBonus - waveVegLost * waveBalance.clearBonusVegPenalty);
+        const cleanDefenseBonus = Math.max(0, scaledBonus - waveVegLost * waveBalance.clearBonusVegPenalty) + reserveBonus;
         const bonus = currentWaveEarlyStart ? Math.round(cleanDefenseBonus * (1 + earlyStartBonusPct)) : cleanDefenseBonus;
         const damageDealt = Math.round(currentWaveDamageDealt || 0);
         const kps = currentWaveKillCount > 0 ? (currentWaveRewardEarned / currentWaveKillCount).toFixed(1) : "0.0";
         const earlyTag = currentWaveEarlyStart ? `Early Start +${Math.round(earlyStartBonusPct * 100)}%` : "Early Start: No";
         money += bonus;
+        if (flawlessBonus > 0) {
+          showFlawlessCallout(flawlessBonus, 1500);
+          triggerFlawlessChipReward(flawlessBonus);
+          showMoneyGainFx(`FLAWLESS +$${flawlessBonus}`, "flawless", 120);
+        }
+        showMoneyGainFx(`+$${bonus}`, "bonus", flawlessBonus > 0 ? 360 : 120);
+        if (profileData) {
+          const c = ensureCareerStats(profileData);
+          c.wavesCleared += 1;
+          c.coinsFromBonus += Math.max(0, Math.round(bonus));
+          c.bestWave = Math.max(c.bestWave || 0, wave);
+        }
         showWaveSummary({
           title: waveBossFlag ? `Wave ${wave} Cleared - Boss Defeated` : `Wave ${wave} Cleared`,
           parts: [
@@ -3694,7 +3979,8 @@ const canvas = document.getElementById("game");
             `Veg Lost: ${waveVegLost}`,
             `Damage Dealt: ${damageDealt}`,
             `Rewards: $${currentWaveRewardEarned} (${kps}/kill)`,
-            `${earlyTag} • Clear Bonus: $${bonus}`
+            `Flawless: +$${flawlessBonus} | Reserve: +$${reserveBonus} (cap $${reserveCap})`,
+            `${earlyTag} | Clear Bonus: $${bonus}`
           ]
         });
         showWaveCallout(waveBossFlag ? `Wave ${wave} Cleared - Boss Down` : `Wave ${wave} Cleared`, waveBossFlag ? "boss" : "normal", 2200);
@@ -3702,6 +3988,11 @@ const canvas = document.getElementById("game");
           const levelBankDeposit = money;
           bank += levelBankDeposit;
           money = 0;
+          if (profileData) {
+            const c = ensureCareerStats(profileData);
+            c.bankedTotal += Math.max(0, Math.round(levelBankDeposit));
+            c.bestBank = Math.max(c.bestBank || 0, bank);
+          }
           levelComplete = true;
           currentWaveHasBoss = false;
           currentWaveFinalBoost = false;
@@ -3728,12 +4019,12 @@ const canvas = document.getElementById("game");
           return;
         }
         if (currentWaveEarlyStart) {
-          const bonusExtra = bonus - baseBonus;
+          const bonusExtra = bonus - cleanDefenseBonus;
           const bossNote = waveBossFlag ? " Boss defeated!" : "";
-          setStatus(`Wave ${wave} cleared.${bossNote} Base $${baseBonus} + early-start $${bonusExtra} = $${bonus}. Next wave in 10s (or start now for +25%).`, "good");
+          setStatus(`Wave ${wave} cleared.${bossNote} Base $${baseBonus} + reserve $${reserveBonus} + early-start $${bonusExtra} = $${bonus}. Next wave in 10s (or start now for +25%).`, "good");
         } else {
           const bossNote = waveBossFlag ? " Boss defeated!" : "";
-          setStatus(`Wave ${wave} cleared.${bossNote} +$${bonus} bonus. Next wave in 10s (or start now for +25%).`, "good");
+          setStatus(`Wave ${wave} cleared.${bossNote} +$${bonus} bonus (includes reserve +$${reserveBonus}). Next wave in 10s (or start now for +25%).`, "good");
         }
         lastClearedWave = wave;
         currentWaveEarlyStart = false;
@@ -3788,25 +4079,28 @@ const canvas = document.getElementById("game");
           // Frost buildup hugging both road shoulders.
           ctx.save();
           ctx.globalCompositeOperation = "screen";
-          ctx.strokeStyle = "rgba(236, 247, 255, 0.4)";
-          ctx.lineWidth = Math.max(2.2, roadHalfHeight * 0.36);
+          ctx.strokeStyle = "rgba(243, 251, 255, 0.56)";
+          ctx.lineWidth = Math.max(2.8, roadHalfHeight * 0.44);
           ctx.stroke(lanePath);
-          ctx.strokeStyle = "rgba(170, 197, 224, 0.26)";
-          ctx.lineWidth = Math.max(3.6, roadHalfHeight * 0.52);
+          ctx.strokeStyle = "rgba(176, 206, 234, 0.36)";
+          ctx.lineWidth = Math.max(4.8, roadHalfHeight * 0.64);
+          ctx.stroke(lanePath);
+          ctx.strokeStyle = "rgba(228, 244, 255, 0.28)";
+          ctx.lineWidth = Math.max(1.6, roadHalfHeight * 0.22);
           ctx.stroke(lanePath);
           ctx.restore();
 
           // Compacted snow ruts for a trampled/worn winter lane look.
           ctx.save();
-          ctx.strokeStyle = "rgba(118, 140, 166, 0.24)";
-          ctx.lineWidth = Math.max(1.3, roadHalfHeight * 0.2);
+          ctx.strokeStyle = "rgba(98, 122, 150, 0.34)";
+          ctx.lineWidth = Math.max(1.8, roadHalfHeight * 0.24);
           for (const seg of lane.segments) {
             const dx = seg.b.x - seg.a.x;
             const dy = seg.b.y - seg.a.y;
             const len = Math.max(0.0001, Math.hypot(dx, dy));
             const nx = -dy / len;
             const ny = dx / len;
-            const inset = Math.max(2.2, roadHalfHeight * 0.22);
+            const inset = Math.max(2.8, roadHalfHeight * 0.27);
             ctx.beginPath();
             ctx.moveTo(seg.a.x + nx * inset, seg.a.y + ny * inset);
             ctx.lineTo(seg.b.x + nx * inset, seg.b.y + ny * inset);
@@ -3815,6 +4109,20 @@ const canvas = document.getElementById("game");
             ctx.moveTo(seg.a.x - nx * inset, seg.a.y - ny * inset);
             ctx.lineTo(seg.b.x - nx * inset, seg.b.y - ny * inset);
             ctx.stroke();
+
+            ctx.strokeStyle = "rgba(222, 240, 255, 0.26)";
+            ctx.lineWidth = Math.max(0.9, roadHalfHeight * 0.12);
+            ctx.beginPath();
+            ctx.moveTo(seg.a.x + nx * (inset - 0.9), seg.a.y + ny * (inset - 0.9));
+            ctx.lineTo(seg.b.x + nx * (inset - 0.9), seg.b.y + ny * (inset - 0.9));
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(seg.a.x - nx * (inset - 0.9), seg.a.y - ny * (inset - 0.9));
+            ctx.lineTo(seg.b.x - nx * (inset - 0.9), seg.b.y - ny * (inset - 0.9));
+            ctx.stroke();
+
+            ctx.strokeStyle = "rgba(98, 122, 150, 0.34)";
+            ctx.lineWidth = Math.max(1.8, roadHalfHeight * 0.24);
           }
           ctx.restore();
         }
@@ -3842,7 +4150,7 @@ const canvas = document.getElementById("game");
         // Tiny edge pebbles to blend path into surrounding terrain.
         for (const pebble of lane.pathPebbles || []) {
           if (cfg.terrain === "snow") {
-            ctx.fillStyle = `rgba(235, 245, 255, ${Math.min(0.36, pebble.a + 0.08)})`;
+            ctx.fillStyle = `rgba(238, 248, 255, ${Math.min(0.5, pebble.a + 0.16)})`;
           } else {
             ctx.fillStyle = `rgba(206, 217, 228, ${pebble.a})`;
           }
@@ -5856,6 +6164,30 @@ const canvas = document.getElementById("game");
         ctx.lineTo(2.4, 1.6);
         ctx.closePath();
         ctx.fill();
+      } else if (kind === "slow") {
+        ctx.beginPath();
+        ctx.moveTo(0, -2.3);
+        ctx.lineTo(0.6, -0.8);
+        ctx.lineTo(2.2, -0.8);
+        ctx.lineTo(0.95, 0.25);
+        ctx.lineTo(1.45, 2.2);
+        ctx.lineTo(0, 1.1);
+        ctx.lineTo(-1.45, 2.2);
+        ctx.lineTo(-0.95, 0.25);
+        ctx.lineTo(-2.2, -0.8);
+        ctx.lineTo(-0.6, -0.8);
+        ctx.closePath();
+        ctx.fill();
+      } else if (kind === "jam") {
+        ctx.beginPath();
+        ctx.arc(-0.45, -0.2, 0.38, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(-0.2, 0, 1.35, -0.9, 0.9);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(0, 0, 2.15, -0.85, 0.85);
+        ctx.stroke();
       } else {
         ctx.font = "700 6.2px Segoe UI";
         ctx.textAlign = "center";
@@ -5902,7 +6234,9 @@ const canvas = document.getElementById("game");
 
         if ((e.hitFlash || 0) > 0) {
           const hitA = Math.min(0.5, 0.16 + (e.hitFlash / 7) * 0.34);
-          ctx.fillStyle = `rgba(255, 224, 224, ${hitA})`;
+          const hitColor = e.hitColor || "rgba(255, 224, 224, 0.95)";
+          const tint = hitColor.replace(/0\.\d+\)|1\)/, `${hitA})`);
+          ctx.fillStyle = tint;
           ctx.beginPath();
           ctx.arc(e.x, e.y, 10 + (e.sizeMul || 1) * 4, 0, Math.PI * 2);
           ctx.fill();
@@ -5941,6 +6275,30 @@ const canvas = document.getElementById("game");
           ctx.arc(roleX, roleY, 7.9, 0, Math.PI * 2);
           ctx.stroke();
         }
+
+        if ((e.slowStatusTimer || 0) > 0) {
+          const sx = e.x - (12 + (sizeMul - 1) * 6);
+          const sy = e.y - (12 + (sizeMul - 1) * 7);
+          drawEnemyStatusChip(sx, sy, "slow", "#76d8f7", "rgba(12, 21, 34, 0.92)", 5.8);
+        }
+        if ((e.jamStatusTimer || 0) > 0) {
+          const jx = e.x - (24 + (sizeMul - 1) * 8);
+          const jy = e.y - (12 + (sizeMul - 1) * 7);
+          drawEnemyStatusChip(jx, jy, "jam", "#8f83ee", "rgba(15, 18, 24, 0.92)", 5.8);
+        }
+      }
+    }
+
+    function drawImpactBursts() {
+      if (!impactBursts || impactBursts.length === 0) return;
+      for (const p of impactBursts) {
+        const lifePct = Math.max(0, Math.min(1, p.life / Math.max(1, p.maxLife)));
+        const a = 0.16 + lifePct * 0.56;
+        const color = (p.color || "rgba(255, 180, 150, 0.9)").replace(/0\.\d+\)|1\)/, `${a})`);
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, Math.max(0.7, p.size * lifePct), 0, Math.PI * 2);
+        ctx.fill();
       }
     }
 
@@ -6057,6 +6415,7 @@ const canvas = document.getElementById("game");
       drawTowers();
       drawImplosions();
       drawEnemies();
+      drawImpactBursts();
       drawBullets();
       drawGameOver();
       drawLevelComplete();
@@ -6294,12 +6653,12 @@ const canvas = document.getElementById("game");
     }
     sellSelectedBtn.addEventListener("click", () => {
       if (gameOver || levelComplete) return;
-      sellTowerById(selectedTowerId);
+      requestSellTowerConfirm(selectedTowerId);
     });
     if (towerFloatSellBtn) {
       towerFloatSellBtn.addEventListener("click", () => {
         if (gameOver || levelComplete) return;
-        sellTowerById(selectedTowerId);
+        requestSellTowerConfirm(selectedTowerId);
       });
     }
     if (towerFloatCardEl) {
@@ -6327,6 +6686,7 @@ const canvas = document.getElementById("game");
     loadHighscores();
     loadCompletedLevels();
     loadProfileData();
+    syncLandingCareerHint();
     if (profileData?.lastPlayerName && scoreNameInputEl) scoreNameInputEl.value = profileData.lastPlayerName;
     if (profileData?.lastDifficulty && difficultySelect) difficultySelect.value = profileData.lastDifficulty;
     if (profileData?.lastLevel && levelSelect) levelSelect.value = String(profileData.lastLevel);

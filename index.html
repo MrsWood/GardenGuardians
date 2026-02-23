@@ -124,13 +124,15 @@
       </div>
       <div id="towerFloatCard" class="towerFloatCard" hidden>
         <div class="towerFloatIconRow" aria-label="Tower quick actions">
-          <button id="towerFloatSellBtn" class="towerFloatIconBtn" type="button" title="Sell tower">
-            <span class="towerFloatGlyph" aria-hidden="true">$</span>
-            <span id="towerFloatSellVal">0</span>
-          </button>
-          <button id="towerFloatUpgradeBtn" class="towerFloatIconBtn" type="button" title="Upgrade tower">
+          <button id="towerFloatUpgradeBtn" class="towerFloatIconBtn upgradePrimary" type="button" title="Upgrade tower">
             <span class="towerFloatGlyph" aria-hidden="true">&#x2191;</span>
+            <span class="towerFloatLabel">Upgrade</span>
             <span id="towerFloatUpgradeVal">$0</span>
+          </button>
+          <button id="towerFloatSellBtn" class="towerFloatIconBtn sellSecondary" type="button" title="Sell tower">
+            <span class="towerFloatGlyph" aria-hidden="true">$</span>
+            <span id="towerFloatSellLabel" class="towerFloatLabel">Sell</span>
+            <span id="towerFloatSellVal">0</span>
           </button>
         </div>
       </div>
@@ -170,6 +172,10 @@
         <div class="waveTopHeader">
           <div class="waveControl">
             <span id="waveBanner" data-state="ready">Wave <span id="wave">0/10</span><span id="waveBannerTag">Ready</span></span>
+            <span id="flawlessChip" class="flawlessChip" data-state="ready" title="Flawless bonus tracker">
+              <span class="flawlessDot" aria-hidden="true"></span>
+              <span id="flawlessChipText">Flawless</span>
+            </span>
             <button id="startBtn" type="button">
               <span id="startBtnGlyph" aria-hidden="true">GO</span>
               <span id="startBtnMain">Start Wave</span>
@@ -183,6 +189,7 @@
           <div id="waveSummaryBody" class="waveSummaryBody"></div>
         </div>
       </div>
+      <div id="flawlessCallout" aria-live="polite"></div>
     </div>
     <div class="infoBar">
       <div class="advancedWrap">
