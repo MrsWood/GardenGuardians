@@ -39,6 +39,12 @@ Your live URL will be:
 ## Required Files
 
 - `index.html`
+- `game.config.js`
+- `simulation.js`
+- `combat.js`
+- `persistence.js`
+- `ui.js`
+- `rendering.js`
 - `game.js`
 - `style.css`
 - `instructions.html`

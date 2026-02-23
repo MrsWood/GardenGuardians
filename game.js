@@ -1,355 +1,68 @@
-const canvas = document.getElementById("game");
+﻿const canvas = document.getElementById("game");
     const ctx = canvas.getContext("2d");
 
     const roadHalfHeight = 9.52;
     const towerRadius = 11;
     const enemyRadius = 11;
     const noBuildPadding = 10;
-    const allowDirectLevelSelect = false;
-    const levelConfigs = {
-      1: {
-        name: "Garden Lawn",
-        waves: 10,
-        terrain: "lawn",
-        flowerTheme: "mixed",
-        mergeGate: false,
-        waveCountMul: 0.95,
-        enemyHpMul: 0.92,
-        enemySpeedMul: 0.94,
-        spawnDelayMul: 1.05,
-        enemyRewardMul: 1.02,
-        clearBonusMul: 1.06,
-        bossEvery: 6,
-        badgeName: "Garden Blossom",
-        badgePetal: "#f08ea0",
-        badgeCenter: "#f6e6a2",
-        laneDefinitions: [
-          {
-            id: "top",
-            basePoints: [
-              { x: -30, y: 92 },
-              { x: 90, y: 62 },
-              { x: 180, y: 108 },
-              { x: 270, y: 74 },
-              { x: 355, y: 118 },
-              { x: 445, y: 82 },
-              { x: 535, y: 120 },
-              { x: 615, y: 90 },
-              { x: 675, y: 126 },
-              { x: 704, y: 142 },
-              { x: 714, y: 183 }
-            ]
-          },
-          {
-            id: "bottom",
-            basePoints: [
-              { x: -30, y: 344 },
-              { x: 100, y: 366 },
-              { x: 195, y: 320 },
-              { x: 285, y: 362 },
-              { x: 375, y: 314 },
-              { x: 465, y: 356 },
-              { x: 555, y: 318 },
-              { x: 635, y: 348 },
-              { x: 685, y: 304 },
-              { x: 704, y: 280 },
-              { x: 714, y: 248 }
-            ]
-          }
-        ]
-      },
-      2: {
-        name: "Prairie Merge",
-        waves: 12,
-        terrain: "prairie",
-        flowerTheme: "susan",
-        mergeGate: true,
-        waveCountMul: 1,
-        enemyHpMul: 1,
-        enemySpeedMul: 1,
-        spawnDelayMul: 1,
-        enemyRewardMul: 1.03,
-        clearBonusMul: 1.03,
-        bossEvery: 5,
-        badgeName: "Black-Eyed Susan",
-        badgePetal: "#f4c91f",
-        badgeCenter: "#2a1b11",
-        laneDefinitions: [
-          {
-            id: "top",
-            basePoints: [
-              { x: -30, y: 50 },
-              { x: 95, y: 36 },
-              { x: 190, y: 82 },
-              { x: 280, y: 48 },
-              { x: 380, y: 96 },
-              { x: 475, y: 70 },
-              { x: 565, y: 130 },
-              { x: 640, y: 176 },
-              { x: 690, y: 206 },
-              { x: 714, y: 210 }
-            ]
-          },
-          {
-            id: "bottom",
-            basePoints: [
-              { x: -30, y: 372 },
-              { x: 110, y: 390 },
-              { x: 215, y: 344 },
-              { x: 305, y: 386 },
-              { x: 405, y: 328 },
-              { x: 500, y: 374 },
-              { x: 585, y: 300 },
-              { x: 650, y: 246 },
-              { x: 694, y: 216 },
-              { x: 714, y: 210 }
-            ]
-          }
-        ]
-      },
-      3: {
-        name: "Desert Cactus Run",
-        waves: 14,
-        terrain: "desert",
-        flowerTheme: "cactus",
-        mergeGate: false,
-        waveCountMul: 1.08,
-        enemyHpMul: 1.1,
-        enemySpeedMul: 1.08,
-        spawnDelayMul: 0.92,
-        enemyRewardMul: 1.06,
-        clearBonusMul: 1.06,
-        bossEvery: 5,
-        enemyWeights: { aphid: 4, mantis: 3, locust: 4, ladybug: 2, caterpillar: 2 },
-        badgeName: "Cactus Bloom",
-        badgePetal: "#67a85f",
-        badgeCenter: "#e8cf6a",
-        laneDefinitions: [
-          {
-            id: "top",
-            basePoints: [
-              { x: -30, y: 82 },
-              { x: 92, y: 58 },
-              { x: 185, y: 106 },
-              { x: 276, y: 74 },
-              { x: 362, y: 118 },
-              { x: 451, y: 86 },
-              { x: 539, y: 122 },
-              { x: 622, y: 92 },
-              { x: 684, y: 132 },
-              { x: 705, y: 154 },
-              { x: 714, y: 183 }
-            ]
-          },
-          {
-            id: "bottom",
-            basePoints: [
-              { x: -30, y: 346 },
-              { x: 106, y: 370 },
-              { x: 200, y: 324 },
-              { x: 290, y: 366 },
-              { x: 382, y: 320 },
-              { x: 472, y: 360 },
-              { x: 560, y: 320 },
-              { x: 640, y: 350 },
-              { x: 688, y: 306 },
-              { x: 704, y: 282 },
-              { x: 714, y: 248 }
-            ]
-          }
-        ]
-      },
-      4: {
-        name: "Sunflower Crossroads",
-        waves: 16,
-        terrain: "prairie",
-        flowerTheme: "sunflower",
-        mergeGate: false,
-        waveCountMul: 1.18,
-        enemyHpMul: 1.2,
-        enemySpeedMul: 1.14,
-        spawnDelayMul: 0.84,
-        enemyRewardMul: 1.1,
-        clearBonusMul: 1.1,
-        bossEvery: 4,
-        enemyWeights: { aphid: 3, mantis: 4, locust: 4, ladybug: 3, caterpillar: 3 },
-        badgeName: "Sunflower Crest",
-        badgePetal: "#f2be1d",
-        badgeCenter: "#4a2f1a",
-        laneDefinitions: [
-          {
-            id: "top",
-            basePoints: [
-              { x: -30, y: 64 },
-              { x: 105, y: 118 },
-              { x: 240, y: 176 },
-              { x: 360, y: 214 },
-              { x: 500, y: 276 },
-              { x: 620, y: 324 },
-              { x: 695, y: 350 },
-              { x: 714, y: 356 }
-            ]
-          },
-          {
-            id: "bottom",
-            basePoints: [
-              { x: -30, y: 358 },
-              { x: 110, y: 304 },
-              { x: 245, y: 246 },
-              { x: 360, y: 212 },
-              { x: 500, y: 148 },
-              { x: 620, y: 98 },
-              { x: 696, y: 70 },
-              { x: 714, y: 64 }
-            ]
-          }
-        ]
-      },
-      5: {
-        name: "Snowfield Patrol",
-        waves: 18,
-        terrain: "snow",
-        flowerTheme: "christmas",
-        mergeGate: false,
-        waveCountMul: 1.25,
-        enemyHpMul: 1.28,
-        enemySpeedMul: 1.16,
-        spawnDelayMul: 0.8,
-        enemyRewardMul: 1.15,
-        clearBonusMul: 1.14,
-        bossEvery: 4,
-        enemyWeights: { aphid: 2, mantis: 3, locust: 4, ladybug: 4, caterpillar: 4 },
-        badgeName: "Winter Holly",
-        badgePetal: "#2f8f4d",
-        badgeCenter: "#d84b4b",
-        laneDefinitions: [
-          {
-            id: "top",
-            basePoints: [
-              { x: -30, y: 66 },
-              { x: 76, y: 96 },
-              { x: 170, y: 154 },
-              { x: 268, y: 188 },
-              { x: 346, y: 232 },
-              { x: 472, y: 286 },
-              { x: 562, y: 312 },
-              { x: 658, y: 342 },
-              { x: 714, y: 356 }
-            ]
-          },
-          {
-            id: "middle",
-            basePoints: [
-              { x: -30, y: 196 },
-              { x: 90, y: 162 },
-              { x: 188, y: 230 },
-              { x: 304, y: 206 },
-              { x: 428, y: 178 },
-              { x: 546, y: 246 },
-              { x: 642, y: 220 },
-              { x: 714, y: 210 }
-            ]
-          },
-          {
-            id: "bottom",
-            basePoints: [
-              { x: -30, y: 360 },
-              { x: 120, y: 318 },
-              { x: 198, y: 272 },
-              { x: 314, y: 222 },
-              { x: 410, y: 170 },
-              { x: 534, y: 120 },
-              { x: 616, y: 82 },
-              { x: 686, y: 62 },
-              { x: 714, y: 64 }
-            ]
-          }
-        ]
-      },
-      6: {
-        name: "Topiary Maze",
-        waves: 20,
-        terrain: "lawn",
-        flowerTheme: "topiary",
-        mergeGate: true,
-        waveCountMul: 1.34,
-        enemyHpMul: 1.36,
-        enemySpeedMul: 1.18,
-        spawnDelayMul: 0.74,
-        enemyRewardMul: 1.2,
-        clearBonusMul: 1.2,
-        bossEvery: 3,
-        enemyWeights: { aphid: 2, mantis: 3, locust: 4, ladybug: 4, caterpillar: 5 },
-        badgeName: "Boxwood Crown",
-        badgePetal: "#4a8a47",
-        badgeCenter: "#dbe7c8",
-        laneDefinitions: [
-          {
-            id: "upperA",
-            basePoints: [
-              { x: -30, y: 52 },
-              { x: 96, y: 84 },
-              { x: 208, y: 60 },
-              { x: 318, y: 116 },
-              { x: 432, y: 98 },
-              { x: 526, y: 186 },
-              { x: 594, y: 256 },
-              { x: 612, y: 338 },
-              { x: 662, y: 338 },
-              { x: 700, y: 338 },
-              { x: 714, y: 338 }
-            ]
-          },
-          {
-            id: "upperB",
-            basePoints: [
-              { x: -30, y: 136 },
-              { x: 116, y: 174 },
-              { x: 212, y: 230 },
-              { x: 310, y: 174 },
-              { x: 426, y: 236 },
-              { x: 524, y: 206 },
-              { x: 604, y: 274 },
-              { x: 612, y: 338 },
-              { x: 666, y: 338 },
-              { x: 702, y: 338 },
-              { x: 714, y: 338 }
-            ]
-          },
-          {
-            id: "lowerA",
-            basePoints: [
-              { x: -30, y: 252 },
-              { x: 98, y: 220 },
-              { x: 202, y: 162 },
-              { x: 304, y: 248 },
-              { x: 420, y: 188 },
-              { x: 516, y: 262 },
-              { x: 602, y: 288 },
-              { x: 612, y: 338 },
-              { x: 668, y: 338 },
-              { x: 704, y: 338 },
-              { x: 714, y: 338 }
-            ]
-          },
-          {
-            id: "lowerB",
-            basePoints: [
-              { x: -30, y: 366 },
-              { x: 112, y: 334 },
-              { x: 218, y: 358 },
-              { x: 328, y: 304 },
-              { x: 438, y: 318 },
-              { x: 542, y: 276 },
-              { x: 612, y: 338 },
-              { x: 676, y: 338 },
-              { x: 708, y: 338 },
-              { x: 714, y: 338 }
-            ]
-          }
-        ]
-      }
-    };
+    const gameConfigs = window.GG_CONFIGS || null;
+    if (!gameConfigs || !gameConfigs.levelConfigs || !Array.isArray(gameConfigs.enemyTypes) || !gameConfigs.waveBalance || !gameConfigs.towerCosts || !gameConfigs.towerDetails || !gameConfigs.difficultyProfiles || !gameConfigs.enemyRoleStats) {
+      throw new Error("Missing GG_CONFIGS. Ensure game.config.js is loaded before game.js.");
+    }
+    const simulation = window.GG_SIM || null;
+    if (!simulation
+      || typeof simulation.computeWaveSpawnPlan !== "function"
+      || typeof simulation.createEnemyEntity !== "function"
+      || typeof simulation.pickTargetByProgress !== "function"
+      || typeof simulation.getHitFeedbackColor !== "function") {
+      throw new Error("Missing GG_SIM helpers. Ensure simulation.js is loaded before game.js.");
+    }
+    const combat = window.GG_COMBAT || null;
+    if (!combat
+      || typeof combat.spawnImpactBurst !== "function"
+      || typeof combat.applyEnemyDamage !== "function"
+      || typeof combat.resolveProjectileHits !== "function") {
+      throw new Error("Missing GG_COMBAT helpers. Ensure combat.js is loaded before game.js.");
+    }
+    const persistence = window.GG_PERSIST || null;
+    if (!persistence
+      || typeof persistence.loadHighscores !== "function"
+      || typeof persistence.saveHighscores !== "function"
+      || typeof persistence.loadCompletedLevels !== "function"
+      || typeof persistence.saveCompletedLevels !== "function"
+      || typeof persistence.getDefaultProfileData !== "function"
+      || typeof persistence.ensureCareerStats !== "function"
+      || typeof persistence.loadProfileData !== "function"
+      || typeof persistence.saveProfileData !== "function"
+      || typeof persistence.clearRunSnapshot !== "function"
+      || typeof persistence.sanitizeRunSnapshot !== "function"
+      || typeof persistence.writeRunSnapshot !== "function"
+      || typeof persistence.readRunSnapshot !== "function") {
+      throw new Error("Missing GG_PERSIST helpers. Ensure persistence.js is loaded before game.js.");
+    }
+    const ui = window.GG_UI || null;
+    if (!ui
+      || typeof ui.computeTowerAffordability !== "function"
+      || typeof ui.computeWaveBanner !== "function"
+      || typeof ui.computeFlawlessChip !== "function"
+      || typeof ui.computeWaveControls !== "function") {
+      throw new Error("Missing GG_UI helpers. Ensure ui.js is loaded before game.js.");
+    }
+    const rendering = window.GG_RENDER || null;
+    if (!rendering
+      || typeof rendering.getTowerDockDefinitions !== "function"
+      || typeof rendering.getTowerArtSources !== "function"
+      || typeof rendering.shouldUseImportedTowerArt !== "function"
+      || typeof rendering.getEnemyStyle !== "function"
+      || typeof rendering.getEnemyLabel !== "function"
+      || typeof rendering.getPrimaryRoleChip !== "function"
+      || typeof rendering.getEnemyOverlayLayout !== "function"
+      || typeof rendering.drawEnemyOverlay !== "function") {
+      throw new Error("Missing GG_RENDER helpers. Ensure rendering.js is loaded before game.js.");
+    }
+    const allowDirectLevelSelect = !!gameConfigs.allowDirectLevelSelect;
+    const levelConfigs = gameConfigs.levelConfigs;
+
     const lanes = {};
     const lawnTexture = document.createElement("canvas");
     const soilTexture = document.createElement("canvas");
@@ -364,7 +77,7 @@ const canvas = document.getElementById("game");
     let roadShoulderColor = "rgba(93, 104, 116, 0.26)";
     let sceneTopWashGradient = null;
     let sceneVignetteGradient = null;
-    const enemyTypes = ["aphid", "mantis", "locust", "ladybug", "caterpillar"];
+    const enemyTypes = gameConfigs.enemyTypes;
 
     const waveEl = document.getElementById("wave");
     const waveBannerEl = document.getElementById("waveBanner");
@@ -533,226 +246,60 @@ const canvas = document.getElementById("game");
     const earlyStartBonusPct = 0.25;
     const towerSellRate = 0.72;
     const maxBulletsOnScreen = 420;
-    const waveBalance = {
-      regularBaseCount: 7,
-      regularCountPerWave: 1.75,
-      bossBaseCount: 5,
-      bossCountPerWave: 1.05,
-      hpBase: 28,
-      hpPerWave: 6,
-      hpCurvePow: 1.18,
-      speedBase: 0.88,
-      speedPerWave: 0.055,
-      speedCurvePerWave: 0.012,
-      speedCurveCap: 0.35,
-      rewardBase: 7,
-      rewardPerWave: 1.75,
-      spawnBase: 820,
-      spawnDropPerWave: 25,
-      spawnPreMulFloor: 300,
-      spawnFinalFloor: 230,
-      clearBonusBase: 8,
-      clearBonusPerWave: 1.8,
-      clearBonusBossAdd: 6,
-      clearBonusVegPenalty: 4,
-      clearBonusFlawless: 5,
-      reserveBonusRate: 0.045,
-      reserveBonusCap: 14
-    };
+    const waveBalance = gameConfigs.waveBalance;
 
-    const towerCosts = {
-      spray: 25,
-      glue: 35,
-      hose: 55,
-      salt: 60
-    };
+    const towerCosts = gameConfigs.towerCosts;
 
-    const towerDetails = {
-      spray: { name: "Sprayer", desc: "Fan spray aerosol damage." },
-      glue: { name: "Glue Pot", desc: "Throws sticky traps that slow bugs." },
-      hose: { name: "Hosepipe", desc: "High-pressure water beam that pierces through bugs in its path." },
-      salt: { name: "Salt Cannon", desc: "Focused salt shots for strong single-target damage." }
-    };
+    const towerDetails = gameConfigs.towerDetails;
     const towerArtVersion = "20260222e";
-    const towerArtSources = {
-      spray: `./assets/bug_sprayer_game_clean.png?v=${towerArtVersion}`,
-      glue: `./assets/glue_trap_game_clean.png?v=${towerArtVersion}`,
-      hose: `./assets/water_hose_game_clean.png?v=${towerArtVersion}`,
-      salt: `./assets/cannon_game_clean.png?v=${towerArtVersion}`
-    };
+    const towerArtSources = rendering.getTowerArtSources(towerArtVersion);
     const towerArtImages = { spray: null, glue: null, hose: null, salt: null };
     const towerArtProcessed = { spray: null, glue: null, hose: null, salt: null };
 
-    const difficultyProfiles = {
-      easy: {
-        label: "Easy",
-        startMoney: 140,
-        waveCountMul: 0.84,
-        hpMul: 0.8,
-        speedMul: 0.86,
-        rewardMul: 1.2,
-        spawnDelayMul: 1.22,
-        bossEvery: 7,
-        bossHpMul: 0.74,
-        bossArmorAdd: -0.08,
-        bossGlueResistAdd: -0.16,
-        clearBonusMul: 1.12,
-        upgradeCostMul: 0.92,
-        bunnyCooldownBase: 480,
-        bunnyCooldownJitter: 280
-      },
-      normal: {
-        label: "Normal",
-        startMoney: 100,
-        waveCountMul: 1,
-        hpMul: 1,
-        speedMul: 1,
-        rewardMul: 1,
-        spawnDelayMul: 1,
-        bossEvery: 5,
-        bossHpMul: 1,
-        bossArmorAdd: 0,
-        bossGlueResistAdd: 0,
-        clearBonusMul: 1,
-        upgradeCostMul: 1,
-        bunnyCooldownBase: 360,
-        bunnyCooldownJitter: 240
-      },
-      hard: {
-        label: "Hard",
-        startMoney: 78,
-        waveCountMul: 1.2,
-        hpMul: 1.24,
-        speedMul: 1.15,
-        rewardMul: 0.9,
-        spawnDelayMul: 0.84,
-        bossEvery: 3,
-        bossHpMul: 1.34,
-        bossArmorAdd: 0.12,
-        bossGlueResistAdd: 0.14,
-        clearBonusMul: 0.9,
-        upgradeCostMul: 1.1,
-        bunnyCooldownBase: 280,
-        bunnyCooldownJitter: 180
-      }
-    };
+    const difficultyProfiles = gameConfigs.difficultyProfiles;
 
-    const enemyRoleStats = {
-      aphid: { hpMul: 0.8, speedMul: 1.26, rewardMul: 0.92, glueResist: 0.07, armor: 0, role: "Scout" },
-      mantis: { hpMul: 1.04, speedMul: 1.02, rewardMul: 1.12, glueResist: 0.16, armor: 0.04, role: "Jammer", jamRadius: 96, jamFireDelayMul: 1.45 },
-      locust: { hpMul: 0.72, speedMul: 1.48, rewardMul: 0.9, glueResist: 0.12, armor: 0.01, role: "Runner" },
-      ladybug: { hpMul: 1.36, speedMul: 0.84, rewardMul: 1.28, glueResist: 0.24, armor: 0.11, role: "Tank" },
-      caterpillar: { hpMul: 1.6, speedMul: 0.72, rewardMul: 1.26, glueResist: 0.42, armor: 0.15, role: "Blocker" },
-      gatecrasher: { hpMul: 3.6, speedMul: 0.78, rewardMul: 3.8, glueResist: 0.5, armor: 0.18, role: "Boss", sizeMul: 1.9 }
-    };
+    const enemyRoleStats = gameConfigs.enemyRoleStats;
 
     function loadHighscores() {
-      try {
-        const raw = localStorage.getItem(highscoreStorageKey);
-        const parsed = raw ? JSON.parse(raw) : [];
-        highscores = Array.isArray(parsed) ? parsed : [];
-      } catch {
-        highscores = [];
-      }
+      highscores = persistence.loadHighscores(highscoreStorageKey);
       renderHighscores();
     }
 
     function saveHighscores() {
-      localStorage.setItem(highscoreStorageKey, JSON.stringify(highscores.slice(0, 10)));
+      persistence.saveHighscores(highscoreStorageKey, highscores);
     }
 
     function loadCompletedLevels() {
-      try {
-        const raw = localStorage.getItem(levelProgressStorageKey);
-        const parsed = raw ? JSON.parse(raw) : [];
-        completedLevels = Array.isArray(parsed) ? parsed.filter(v => Number.isInteger(v) && v > 0) : [];
-      } catch {
-        completedLevels = [];
-      }
-      completedLevels = [...new Set(completedLevels)].sort((a, b) => a - b);
+      completedLevels = persistence.loadCompletedLevels(levelProgressStorageKey);
       renderBadges();
     }
 
     function saveCompletedLevels() {
-      localStorage.setItem(levelProgressStorageKey, JSON.stringify(completedLevels));
+      persistence.saveCompletedLevels(levelProgressStorageKey, completedLevels);
     }
 
     function getDefaultProfileData() {
-      return {
-        version: saveSchemaVersion,
-        lastPlayerName: "",
-        lastDifficulty: "normal",
-        lastLevel: 1,
-        tutorialSeen: false,
-        tutorialAutoStart: false,
-        mobileHoldToPlace: false,
-        audioEnabled: true,
-        musicEnabled: true,
-        sfxVolume: 0.65,
-        musicVolume: 0.3,
-        career: {
-          wavesCleared: 0,
-          bugsDefeated: 0,
-          coinsFromKills: 0,
-          coinsFromBonus: 0,
-          bankedTotal: 0,
-          bestWave: 0,
-          bestBank: 0
-        }
-      };
+      return persistence.getDefaultProfileData(saveSchemaVersion);
     }
 
     function ensureCareerStats(profile) {
-      const defaults = getDefaultProfileData().career;
-      if (!profile.career || typeof profile.career !== "object") {
-        profile.career = { ...defaults };
-      } else {
-        profile.career = {
-          ...defaults,
-          ...profile.career
-        };
-      }
-      for (const key of Object.keys(defaults)) {
-        const v = Number(profile.career[key]);
-        profile.career[key] = Number.isFinite(v) ? Math.max(0, Math.round(v)) : 0;
-      }
-      return profile.career;
+      return persistence.ensureCareerStats(profile, getDefaultProfileData().career);
     }
 
     function syncLandingCareerHint() {
       if (!landingHintEl) return;
       const c = ensureCareerStats(profileData || getDefaultProfileData());
-      landingHintEl.textContent = `Tip: Build towers, start waves early for +25% bonus, and bank leftover money. Career: Waves ${c.wavesCleared} • Bugs ${c.bugsDefeated} • Banked $${c.bankedTotal} • Best Wave ${c.bestWave}.`;
+      landingHintEl.textContent = `Tip: Build towers, start waves early for +25% bonus, and bank leftover money. Career: Waves ${c.wavesCleared} â€¢ Bugs ${c.bugsDefeated} â€¢ Banked $${c.bankedTotal} â€¢ Best Wave ${c.bestWave}.`;
     }
 
     function loadProfileData() {
-      let loaded = getDefaultProfileData();
-      try {
-        const raw = localStorage.getItem(profileStorageKey);
-        const parsed = raw ? JSON.parse(raw) : null;
-        if (parsed && typeof parsed === "object") {
-          loaded = {
-            ...loaded,
-            ...parsed
-          };
-        }
-      } catch {
-        loaded = getDefaultProfileData();
-      }
-      if (loaded.version !== saveSchemaVersion) loaded.version = saveSchemaVersion;
-      if (!levelConfigs[Number(loaded.lastLevel)]) loaded.lastLevel = 1;
-      if (!difficultyProfiles[loaded.lastDifficulty]) loaded.lastDifficulty = "normal";
-      if (typeof loaded.lastPlayerName !== "string") loaded.lastPlayerName = "";
-      loaded.tutorialSeen = !!loaded.tutorialSeen;
-      loaded.tutorialAutoStart = !!loaded.tutorialAutoStart;
-      loaded.mobileHoldToPlace = !!loaded.mobileHoldToPlace;
-      loaded.audioEnabled = loaded.audioEnabled !== false;
-      loaded.musicEnabled = loaded.musicEnabled !== false;
-      loaded.sfxVolume = Math.max(0, Math.min(1, Number(loaded.sfxVolume)));
-      if (!Number.isFinite(loaded.sfxVolume)) loaded.sfxVolume = 0.65;
-      loaded.musicVolume = Math.max(0, Math.min(1, Number(loaded.musicVolume)));
-      if (!Number.isFinite(loaded.musicVolume)) loaded.musicVolume = 0.3;
-      ensureCareerStats(loaded);
+      const loaded = persistence.loadProfileData({
+        key: profileStorageKey,
+        saveSchemaVersion,
+        defaults: getDefaultProfileData(),
+        levelExists: (level) => !!levelConfigs[Number(level)],
+        difficultyExists: (key) => !!difficultyProfiles[key]
+      });
       profileData = loaded;
       return loaded;
     }
@@ -766,9 +313,8 @@ const canvas = document.getElementById("game");
       if (scoreNameInputEl && scoreNameInputEl.value && scoreNameInputEl.value.trim()) {
         profileData.lastPlayerName = scoreNameInputEl.value.trim().slice(0, 18);
       }
-      try {
-        localStorage.setItem(profileStorageKey, JSON.stringify(profileData));
-      } catch {
+      const ok = persistence.saveProfileData(profileStorageKey, profileData);
+      if (!ok) {
         setStatus("Profile save failed: browser storage is full.", "danger");
       }
       syncLandingCareerHint();
@@ -1137,47 +683,17 @@ const canvas = document.getElementById("game");
     }
 
     function clearRunSnapshot() {
-      localStorage.removeItem(runStorageKey);
-      localStorage.removeItem(runBackupStorageKey);
+      persistence.clearRunSnapshot(runStorageKey, runBackupStorageKey);
     }
 
     function sanitizeRunSnapshot(parsed) {
-      if (!parsed || typeof parsed !== "object") return null;
-      if (parsed.version !== saveSchemaVersion) return null;
-      if (!parsed.gameStarted || parsed.gameOver || parsed.levelComplete) return null;
-      const parsedLevel = Number(parsed.levelNumber);
-      if (!levelConfigs[parsedLevel]) return null;
-      if (!difficultyProfiles[parsed.difficultyKey]) return null;
-      return {
-        ...parsed,
-        levelNumber: parsedLevel,
-        difficultyKey: String(parsed.difficultyKey),
-        money: Math.max(0, Number(parsed.money) || 0),
-        bank: Math.max(0, Number(parsed.bank) || 0),
-        lives: Math.max(0, Number(parsed.lives) || 0),
-        wave: Math.max(0, Number(parsed.wave) || 0),
-        lastClearedWave: Math.max(0, Number(parsed.lastClearedWave) || 0),
-        frameCount: Math.max(0, Number(parsed.frameCount) || 0),
-        nextEnemyId: Math.max(1, Number(parsed.nextEnemyId) || 1),
-        nextTowerId: Math.max(1, Number(parsed.nextTowerId) || 1),
-        nextVegetableId: Math.max(1, Number(parsed.nextVegetableId) || 1),
-        bunnySpawnCooldown: Math.max(0, Number(parsed.bunnySpawnCooldown) || 0),
-        autoWaveRemainingMs: Math.max(0, Number(parsed.autoWaveRemainingMs) || 0),
-        currentWaveSpawnTotal: Math.max(0, Number(parsed.currentWaveSpawnTotal) || 0),
-        currentWaveKillCount: Math.max(0, Number(parsed.currentWaveKillCount) || 0),
-        currentWaveRewardEarned: Math.max(0, Number(parsed.currentWaveRewardEarned) || 0),
-        currentWaveStartLives: Math.max(0, Number(parsed.currentWaveStartLives) || 0),
-        currentWaveDamageDealt: Math.max(0, Number(parsed.currentWaveDamageDealt) || 0),
-        nextLevelPending: parsed.nextLevelPending ? Number(parsed.nextLevelPending) : null,
-        selectedTowerType: parsed.selectedTowerType || "spray",
-        selectedTowerId: parsed.selectedTowerId ? Number(parsed.selectedTowerId) : null,
-        tutorialProgress: parsed.tutorialProgress && typeof parsed.tutorialProgress === "object" ? parsed.tutorialProgress : getDefaultTutorialProgress(),
-        towers: Array.isArray(parsed.towers) ? parsed.towers : [],
-        enemies: Array.isArray(parsed.enemies) ? parsed.enemies : [],
-        gluePatches: Array.isArray(parsed.gluePatches) ? parsed.gluePatches : [],
-        craters: Array.isArray(parsed.craters) ? parsed.craters : [],
-        gardenVegetables: Array.isArray(parsed.gardenVegetables) ? parsed.gardenVegetables : []
-      };
+      return persistence.sanitizeRunSnapshot({
+        parsed,
+        saveSchemaVersion,
+        levelExists: (level) => !!levelConfigs[Number(level)],
+        difficultyExists: (key) => !!difficultyProfiles[key],
+        defaultTutorialProgress: getDefaultTutorialProgress()
+      });
     }
 
     function buildRunSnapshot() {
@@ -1230,43 +746,20 @@ const canvas = document.getElementById("game");
         return;
       }
       const snapshot = buildRunSnapshot();
-      try {
-        const previousRaw = localStorage.getItem(runStorageKey);
-        if (previousRaw) localStorage.setItem(runBackupStorageKey, previousRaw);
-        localStorage.setItem(runStorageKey, JSON.stringify(snapshot));
-      } catch {
+      const ok = persistence.writeRunSnapshot(runStorageKey, runBackupStorageKey, snapshot);
+      if (!ok) {
         setStatus("Autosave failed: browser storage is full.", "danger");
       }
       syncResumeAvailability();
     }
 
     function loadRunSnapshot() {
-      try {
-        const rawPrimary = localStorage.getItem(runStorageKey);
-        if (rawPrimary) {
-          const parsedPrimary = sanitizeRunSnapshot(JSON.parse(rawPrimary));
-          if (parsedPrimary) return parsedPrimary;
-        }
-      } catch {
-        // try backup slot below
+      const loaded = persistence.readRunSnapshot(runStorageKey, runBackupStorageKey, sanitizeRunSnapshot);
+      if (!loaded || !loaded.snapshot) return null;
+      if (loaded.recovered) {
+        setStatus("Recovered your run from backup save.", "warn");
       }
-      try {
-        const rawBackup = localStorage.getItem(runBackupStorageKey);
-        if (!rawBackup) return null;
-        const parsedBackup = sanitizeRunSnapshot(JSON.parse(rawBackup));
-        if (parsedBackup) {
-          try {
-            localStorage.setItem(runStorageKey, JSON.stringify(parsedBackup));
-          } catch {
-            // ignore write-back failures
-          }
-          setStatus("Recovered your run from backup save.", "warn");
-          return parsedBackup;
-        }
-        return null;
-      } catch {
-        return null;
-      }
+      return loaded.snapshot;
     }
 
     function syncResumeAvailability() {
@@ -1890,25 +1383,15 @@ const canvas = document.getElementById("game");
       const canSpawnNextWave = nextWaveNumber <= lvl.waves;
       const nextIsBoss = canSpawnNextWave && nextWaveNumber > 0 && nextWaveNumber % bossEvery === 0;
       waveEl.textContent = `${wave}/${lvl.waves}`;
-      if (gameOver) {
-        waveBannerEl.dataset.state = "normal";
-        waveBannerTagEl.textContent = "Over";
-      } else if (levelComplete) {
-        waveBannerEl.dataset.state = "complete";
-        waveBannerTagEl.textContent = "Complete";
-      } else if (currentWaveFinalBoost) {
-        waveBannerEl.dataset.state = "final";
-        waveBannerTagEl.textContent = "Final";
-      } else if (currentWaveHasBoss) {
-        waveBannerEl.dataset.state = "boss";
-        waveBannerTagEl.textContent = "Boss";
-      } else if (wave <= 0) {
-        waveBannerEl.dataset.state = "normal";
-        waveBannerTagEl.textContent = "Ready";
-      } else {
-        waveBannerEl.dataset.state = "normal";
-        waveBannerTagEl.textContent = "Active";
-      }
+      const waveBanner = ui.computeWaveBanner({
+        gameOver,
+        levelComplete,
+        currentWaveFinalBoost,
+        currentWaveHasBoss,
+        wave
+      });
+      waveBannerEl.dataset.state = waveBanner.state;
+      waveBannerTagEl.textContent = waveBanner.tag;
       levelStatEl.textContent = String(levelNumber);
       moneyEl.textContent = money;
       bankEl.textContent = bank;
@@ -1919,21 +1402,17 @@ const canvas = document.getElementById("game");
       const now = Date.now();
       const activeWave = !gameOver && !levelComplete && wave > lastClearedWave;
       const waveVegLostNow = Math.max(0, (currentWaveStartLives || lives) - lives);
-      let flawlessState = "ready";
-      let chipText = wave > 0 ? "Next Wave" : "Flawless";
-      if (now < (flawlessChipCelebrateUntil || 0) && (flawlessChipCelebrateAmount || 0) > 0) {
-        flawlessState = "earned";
-        chipText = `+$${flawlessChipCelebrateAmount}`;
-      } else if (activeWave && waveVegLostNow === 0) {
-        flawlessState = "ontrack";
-        chipText = "On Track";
-      } else if (activeWave && waveVegLostNow > 0) {
-        flawlessState = "lost";
-        chipText = "Lost";
-      }
+      const flawlessUi = ui.computeFlawlessChip({
+        now,
+        celebrateUntil: flawlessChipCelebrateUntil || 0,
+        celebrateAmount: flawlessChipCelebrateAmount || 0,
+        activeWave,
+        waveVegLost: waveVegLostNow,
+        wave
+      });
 
-      if (flawlessChipEl) flawlessChipEl.dataset.state = flawlessState;
-      if (flawlessChipTextEl) flawlessChipTextEl.textContent = chipText;
+      if (flawlessChipEl) flawlessChipEl.dataset.state = flawlessUi.state;
+      if (flawlessChipTextEl) flawlessChipTextEl.textContent = flawlessUi.text;
       syncDifficultyHint();
       syncTowerAffordability();
       startBtn.disabled = gameOver || (levelComplete && !nextLevelPending);
@@ -1943,53 +1422,25 @@ const canvas = document.getElementById("game");
       nextLevelBtn.style.display = showNextLevelBtn ? "inline-block" : "none";
       nextLevelBtn.disabled = !showNextLevelBtn;
       if (showNextLevelBtn) nextLevelBtn.textContent = `Go To Level ${nextLevelPending}`;
-      if (autoWaveTimer && autoWaveDueAt > 0 && !gameOver) {
-        const remainingMs = Math.max(0, autoWaveDueAt - Date.now());
-        const sec = Math.max(1, Math.ceil(remainingMs / 1000));
-        nextWaveStatEl.textContent = nextIsBoss ? `Next: ${sec}s (Boss, +25% early)` : `Next: ${sec}s (+25% early)`;
-        bonusWaveStatEl.textContent = "Bonus: +25% if started early";
-        startBtn.dataset.state = nextIsBoss ? "boss" : "early";
-        if (startBtnGlyphEl) startBtnGlyphEl.textContent = nextIsBoss ? "BOSS" : "+25";
-        if (startBtnMainEl) startBtnMainEl.textContent = nextIsBoss ? `Boss in ${sec}s (+25%)` : `Start in ${sec}s (+25%)`;
-      } else {
-        if (gameOver) nextWaveStatEl.textContent = "Next: --";
-        else if (levelComplete && nextLevelPending) nextWaveStatEl.textContent = `Next: Level ${nextLevelPending} Ready`;
-        else if (levelComplete) nextWaveStatEl.textContent = `Level ${levelNumber} Complete`;
-        else if (!canSpawnNextWave) nextWaveStatEl.textContent = "Next: Final Cleared";
-        else nextWaveStatEl.textContent = nextIsBoss ? "Next: Ready (Boss)" : "Next: Ready";
-        if (levelComplete && nextLevelPending) {
-          bonusWaveStatEl.textContent = `Level ${nextLevelPending} Unlocked`;
-        } else if (levelComplete) {
-          bonusWaveStatEl.textContent = "Level Complete";
-        } else if (currentWaveFinalBoost) {
-          bonusWaveStatEl.textContent = "Final boost active";
-        } else if (currentWaveHasBoss) {
-          bonusWaveStatEl.textContent = currentWaveEarlyStart ? "Boss +25% active" : "Boss wave active";
-        } else {
-          bonusWaveStatEl.textContent = currentWaveEarlyStart ? "+25% active this wave" : "Bonus: none";
-        }
-        if (gameOver) {
-          startBtn.dataset.state = "locked";
-          if (startBtnGlyphEl) startBtnGlyphEl.textContent = "END";
-          if (startBtnMainEl) startBtnMainEl.textContent = "Game Over";
-        } else if (levelComplete && nextLevelPending) {
-          startBtn.dataset.state = "complete";
-          if (startBtnGlyphEl) startBtnGlyphEl.textContent = "NEXT";
-          if (startBtnMainEl) startBtnMainEl.textContent = `Start Level ${nextLevelPending}`;
-        } else if (levelComplete) {
-          startBtn.dataset.state = "complete";
-          if (startBtnGlyphEl) startBtnGlyphEl.textContent = "DONE";
-          if (startBtnMainEl) startBtnMainEl.textContent = "Level Complete";
-        } else if (currentWaveHasBoss) {
-          startBtn.dataset.state = "boss";
-          if (startBtnGlyphEl) startBtnGlyphEl.textContent = "BOSS";
-          if (startBtnMainEl) startBtnMainEl.textContent = "Start Boss Wave";
-        } else {
-          startBtn.dataset.state = "ready";
-          if (startBtnGlyphEl) startBtnGlyphEl.textContent = "GO";
-          if (startBtnMainEl) startBtnMainEl.textContent = "Start Wave";
-        }
-      }
+      const waveControls = ui.computeWaveControls({
+        now,
+        gameOver,
+        levelComplete,
+        nextLevelPending,
+        nextIsBoss,
+        canSpawnNextWave,
+        currentWaveFinalBoost,
+        currentWaveHasBoss,
+        currentWaveEarlyStart,
+        levelNumber,
+        autoWaveActive: !!autoWaveTimer,
+        autoWaveDueAt
+      });
+      nextWaveStatEl.textContent = waveControls.nextWaveText;
+      bonusWaveStatEl.textContent = waveControls.bonusText;
+      startBtn.dataset.state = waveControls.startState;
+      if (startBtnGlyphEl) startBtnGlyphEl.textContent = waveControls.startGlyph;
+      if (startBtnMainEl) startBtnMainEl.textContent = waveControls.startMain;
       renderFloatingTowerCard();
       renderNextWavePreview();
       updatePlacementUndoUi();
@@ -2326,7 +1777,7 @@ const canvas = document.getElementById("game");
       const total = Math.max(6, Math.round(baseTotal * profile.waveCountMul * levelWaveMul));
       const comp = estimateWaveComposition(lvl, nextWave, total, nextIsBoss);
       const previewParts = [
-        `Wave ${nextWave}/${lvl.waves} • ${nextIsBoss ? "Boss Wave" : "Regular Wave"}`,
+        `Wave ${nextWave}/${lvl.waves} â€¢ ${nextIsBoss ? "Boss Wave" : "Regular Wave"}`,
         `Total Enemies: ${total}`,
         ...comp.slice(0, 4),
         "Tip: Start early for +25% clear bonus"
@@ -2458,55 +1909,21 @@ const canvas = document.getElementById("game");
 
     function createEnemy(enemyType, waveLaneId, hp, speed, reward, finalWaveBoost = false) {
       const profile = getDifficultyProfile();
-      const stats = enemyRoleStats[enemyType] || enemyRoleStats.aphid;
       const spawnPoint = getPathPointAtDistance(waveLaneId, 0);
-      let hpScaled = Math.round(hp * stats.hpMul);
-      let armor = stats.armor || 0;
-      let glueResist = stats.glueResist || 0;
-      let sizeMul = stats.sizeMul || 1;
-      let jamRadius = stats.jamRadius || 0;
-      let jamFireDelayMul = stats.jamFireDelayMul || 1;
-      let strengthMul = 1;
-      if (enemyType === "gatecrasher") {
-        hpScaled = Math.round(hpScaled * profile.bossHpMul);
-        armor = Math.max(0, Math.min(0.8, armor + profile.bossArmorAdd));
-        glueResist = Math.max(0, Math.min(0.9, glueResist + profile.bossGlueResistAdd));
-      }
-      if (finalWaveBoost) {
-        hpScaled = Math.round(hpScaled * 2);
-        armor = Math.max(0, Math.min(0.85, armor + 0.08));
-        sizeMul *= 1.45;
-        strengthMul = 2;
-      }
-      return {
-        id: nextEnemyId++,
-        x: spawnPoint.x,
-        y: spawnPoint.y,
-        laneId: waveLaneId,
+      const enemy = simulation.createEnemyEntity({
+        id: nextEnemyId,
         enemyType,
-        state: "path",
-        targetVegetableId: null,
-        eatTimer: 0,
-        pathDist: 0,
-        progress: 0,
-        hp: hpScaled,
-        maxHp: hpScaled,
-        speed: speed * stats.speedMul,
-        reward: Math.max(1, Math.round(reward * stats.rewardMul)),
-        glueResist,
-        armor,
-        jamRadius,
-        jamFireDelayMul,
-        sizeMul,
-        strengthMul,
-        role: stats.role || "",
-        hitFlash: 0,
-        hitColor: "rgba(255, 224, 224, 0.9)",
-        hitType: "spray",
-        slowFlash: 0,
-        slowStatusTimer: 0,
-        jamStatusTimer: 0
-      };
+        waveLaneId,
+        hp,
+        speed,
+        reward,
+        finalWaveBoost,
+        profile,
+        enemyRoleStats,
+        spawnPoint
+      });
+      nextEnemyId += 1;
+      return enemy;
     }
 
     function setTowerFloatCardPosition(left, top) {
@@ -2600,23 +2017,28 @@ const canvas = document.getElementById("game");
       dockEl.className = "towerDock";
       dockEl.setAttribute("aria-label", "Tower selection dock");
 
-      const defs = [
-        { btn: hoseTowerBtn, type: "hose", iconClass: "towerIcon hoseIcon towerDockArt", name: "Hosepipe", cost: 55, hotkey: 3, role: "Beam lane control" },
-        { btn: glueTowerBtn, type: "glue", iconClass: "towerIcon glueIcon towerDockArt", name: "Glue Pot", cost: 35, hotkey: 2, role: "Area slow trap" },
-        { btn: sprayTowerBtn, type: "spray", iconClass: "towerIcon sprayIcon towerDockArt", name: "Sprayer", cost: 25, hotkey: 1, role: "Fan damage" },
-        { btn: saltTowerBtn, type: "salt", iconClass: "saltPreview", name: "Salt Cannon", cost: 60, hotkey: 4, role: "Heavy single target" }
-      ];
+      const buttonByType = {
+        spray: sprayTowerBtn,
+        glue: glueTowerBtn,
+        hose: hoseTowerBtn,
+        salt: saltTowerBtn
+      };
+      const defs = rendering.getTowerDockDefinitions().map((def) => ({
+        ...def,
+        btn: buttonByType[def.type],
+        cost: towerCosts[def.type]
+      }));
 
       for (const def of defs) {
         if (!def.btn) continue;
         if (def.btn.parentElement !== dockEl) dockEl.appendChild(def.btn);
-        def.btn.className = def.type === "salt" ? "towerDockItem towerDockSalt" : "towerDockItem";
+        def.btn.className = def.extraClass ? `towerDockItem ${def.extraClass}` : "towerDockItem";
         def.btn.setAttribute("role", "button");
         def.btn.setAttribute("tabindex", "0");
         def.btn.setAttribute("aria-pressed", "false");
         def.btn.setAttribute("title", `${def.name} ($${def.cost}) [${def.hotkey}]`);
         def.btn.setAttribute("aria-label", `${def.name} ($${def.cost}) [${def.hotkey}]`);
-        def.btn.setAttribute("data-tooltip", `${def.name}  •  $${def.cost}  •  ${def.role}`);
+        def.btn.setAttribute("data-tooltip", `${def.name}  â€¢  $${def.cost}  â€¢  ${def.role}`);
 
         while (def.btn.firstChild) def.btn.removeChild(def.btn.firstChild);
 
@@ -2655,15 +2077,11 @@ const canvas = document.getElementById("game");
       towerButtons.forEach(({ btn, type }) => {
         if (!btn) return;
         const cost = towerCosts[type];
-        const canAfford = money >= cost;
-        const shortName = type === "glue" ? "Glue Pot" : (type === "hose" ? "Hosepipe" : (type === "salt" ? "Salt Cannon" : "Sprayer"));
-        const hotkey = type === "glue" ? "2" : (type === "hose" ? "3" : (type === "salt" ? "4" : "1"));
-        const missing = Math.max(0, cost - money);
-        const affordText = canAfford ? `${shortName} ($${cost}) [${hotkey}]` : `${shortName} ($${cost}) [${hotkey}] - Need $${missing} more`;
-        btn.classList.toggle("unaffordable", !canAfford);
-        btn.setAttribute("aria-disabled", canAfford ? "false" : "true");
-        btn.setAttribute("title", affordText);
-        btn.setAttribute("aria-label", affordText);
+        const afford = ui.computeTowerAffordability({ type, cost, money });
+        btn.classList.toggle("unaffordable", !afford.canAfford);
+        btn.setAttribute("aria-disabled", afford.canAfford ? "false" : "true");
+        btn.setAttribute("title", afford.label);
+        btn.setAttribute("aria-label", afford.label);
       });
     }
 
@@ -3450,23 +2868,18 @@ const canvas = document.getElementById("game");
       currentWaveEarlyStart = startedEarly;
       currentWaveFinalBoost = wave === lvl.waves;
       currentWaveHasBoss = wave % bossEvery === 0;
-      const levelWaveMul = lvl.waveCountMul || 1;
-      const levelHpMul = lvl.enemyHpMul || 1;
-      const levelSpeedMul = lvl.enemySpeedMul || 1;
-      const levelSpawnMul = lvl.spawnDelayMul || 1;
-      const baseTotal = currentWaveHasBoss
-        ? Math.max(7, Math.floor(waveBalance.bossBaseCount + wave * waveBalance.bossCountPerWave))
-        : waveBalance.regularBaseCount + Math.ceil(wave * waveBalance.regularCountPerWave);
-      const total = Math.max(6, Math.round(baseTotal * profile.waveCountMul * levelWaveMul));
-      const hpBase = waveBalance.hpBase + wave * waveBalance.hpPerWave + Math.pow(wave, waveBalance.hpCurvePow);
-      const speedBase = waveBalance.speedBase + wave * waveBalance.speedPerWave + Math.min(waveBalance.speedCurveCap, wave * waveBalance.speedCurvePerWave);
-      const rewardBase = waveBalance.rewardBase + wave * waveBalance.rewardPerWave;
-      const spawnBase = Math.max(waveBalance.spawnPreMulFloor, waveBalance.spawnBase - wave * waveBalance.spawnDropPerWave);
-      const hp = Math.round(hpBase * profile.hpMul * levelHpMul);
-      const speed = speedBase * profile.speedMul * levelSpeedMul;
-      const levelRewardMul = Number.isFinite(lvl.enemyRewardMul) ? lvl.enemyRewardMul : 1;
-      const reward = Math.max(1, Math.round(rewardBase * profile.rewardMul * levelRewardMul));
-      const spawnDelay = Math.max(waveBalance.spawnFinalFloor, Math.round(spawnBase * profile.spawnDelayMul * levelSpawnMul));
+      const wavePlan = simulation.computeWaveSpawnPlan({
+        wave,
+        lvl,
+        profile,
+        waveBalance,
+        currentWaveHasBoss
+      });
+      const total = wavePlan.total;
+      const hp = wavePlan.hp;
+      const speed = wavePlan.speed;
+      const reward = wavePlan.reward;
+      const spawnDelay = wavePlan.spawnDelay;
       const laneIds = (lvl.laneDefinitions || []).map(def => def.id).filter(Boolean);
       const waveLaneId = laneIds.length > 0 ? laneIds[Math.floor(Math.random() * laneIds.length)] : "top";
       const waveLaneLabel = `${waveLaneId} path`;
@@ -3565,65 +2978,42 @@ const canvas = document.getElementById("game");
     }
 
     function pickTarget(tower) {
-      let best = null;
-      let bestScore = -Infinity;
-      const rangeSq = tower.range * tower.range;
-      for (const e of enemies) {
-        const dx = e.x - tower.x;
-        const dy = e.y - tower.y;
-        const dSq = dx * dx + dy * dy;
-        if (dSq > rangeSq) continue;
-        const score = e.progress;
-        if (!best || score > bestScore) {
-          best = e;
-          bestScore = score;
-        }
-      }
-      return best;
+      return simulation.pickTargetByProgress(tower, enemies);
     }
 
     function getHitFeedbackColor(sourceType) {
-      if (sourceType === "hose") return "rgba(90, 190, 255, 0.95)";
-      if (sourceType === "glue") return "rgba(247, 193, 94, 0.92)";
-      if (sourceType === "salt") return "rgba(232, 239, 250, 0.95)";
-      return "rgba(255, 116, 116, 0.92)";
+      return simulation.getHitFeedbackColor(sourceType);
     }
 
     function spawnImpactBurst(x, y, color, count, spread, speedBase, sizeBase, lifeBase) {
       if (!impactBursts) impactBursts = [];
-      const n = Math.max(3, Math.min(16, Math.round(count || 6)));
-      for (let i = 0; i < n; i += 1) {
-        const a = Math.random() * Math.PI * 2;
-        const speed = speedBase + Math.random() * spread;
-        impactBursts.push({
-          x,
-          y,
-          vx: Math.cos(a) * speed,
-          vy: Math.sin(a) * speed,
-          life: lifeBase + Math.floor(Math.random() * 4),
-          maxLife: lifeBase + 3,
-          size: sizeBase + Math.random() * 1.6,
-          color
-        });
-      }
-      if (impactBursts.length > 700) {
-        impactBursts.splice(0, impactBursts.length - 700);
-      }
+      combat.spawnImpactBurst(impactBursts, {
+        x,
+        y,
+        color,
+        count,
+        spread,
+        speedBase,
+        sizeBase,
+        lifeBase,
+        cap: 700
+      });
     }
 
     function applyEnemyDamage(enemy, damage, sourceType = "spray") {
-      if (!enemy) return 0;
-      const armor = enemy.armor || 0;
-      const dealt = Math.max(0, damage * (1 - armor));
-      if (dealt <= 0) return 0;
-      enemy.hp -= dealt;
-      enemy.hitFlash = Math.max(enemy.hitFlash || 0, 8);
-      enemy.hitColor = getHitFeedbackColor(sourceType);
-      enemy.hitType = sourceType;
-      spawnImpactBurst(enemy.x, enemy.y, enemy.hitColor, sourceType === "hose" ? 6 : 8, 0.8, 0.8, 1.8, 11);
-      currentWaveDamageDealt += dealt;
-      if (enemy.enemyType === "gatecrasher") playSfx("bossHit");
-      return dealt;
+      return combat.applyEnemyDamage({
+        enemy,
+        damage,
+        sourceType,
+        getHitFeedbackColor,
+        impactBursts,
+        onDamageDealt: (dealt) => {
+          currentWaveDamageDealt += dealt;
+        },
+        onBossHit: () => {
+          playSfx("bossHit");
+        }
+      });
     }
 
     function removeEnemyAtIndex(enemyIndex, rewardOnDefeat = false) {
@@ -3905,41 +3295,15 @@ const canvas = document.getElementById("game");
         }
       }
 
-      for (let i = bullets.length - 1; i >= 0; i--) {
-        const b = bullets[i];
-        b.px = b.x;
-        b.py = b.y;
-        b.x += b.vx;
-        b.y += b.vy;
-        b.life -= 1;
-
-        let hitEnemyIdx = -1;
-        for (let ei = enemies.length - 1; ei >= 0; ei -= 1) {
-          const e = enemies[ei];
-          const hitRadius = enemyRadius * (e.sizeMul || 1);
-          const dx = e.x - b.x;
-          const dy = e.y - b.y;
-          const hitDist = hitRadius + b.radius;
-          if (dx * dx + dy * dy <= hitDist * hitDist) {
-            hitEnemyIdx = ei;
-            break;
-          }
-        }
-
-        if (hitEnemyIdx >= 0) {
-          const hitEnemy = enemies[hitEnemyIdx];
-          applyEnemyDamage(hitEnemy, b.damage, b.kind === "salt" ? "salt" : "spray");
-          bullets.splice(i, 1);
-          if (hitEnemy.hp <= 0) {
-            removeEnemyAtIndex(hitEnemyIdx, true);
-          }
-          continue;
-        }
-
-        if (b.life <= 0 || b.x < -20 || b.x > canvas.width + 20 || b.y < -20 || b.y > canvas.height + 20) {
-          bullets.splice(i, 1);
-        }
-      }
+      combat.resolveProjectileHits({
+        bullets,
+        enemies,
+        enemyRadius,
+        canvasWidth: canvas.width,
+        canvasHeight: canvas.height,
+        applyEnemyDamageFn: applyEnemyDamage,
+        removeEnemyAtIndex
+      });
 
       if (!gameOver && activeSpawners === 0 && enemies.length === 0 && wave > lastClearedWave) {
         const lvl = getCurrentLevelConfig();
@@ -5228,13 +4592,7 @@ const canvas = document.getElementById("game");
     }
 
     function drawTowerArtSprite(drawCtx, type, opts = {}) {
-      const useImportedTowerArtByType = {
-        spray: false,
-        glue: false,
-        hose: false,
-        salt: true
-      };
-      if (!useImportedTowerArtByType[type]) return false;
+      if (!rendering.shouldUseImportedTowerArt(type)) return false;
       const img = towerArtProcessed[type] || towerArtImages[type];
       if (!img) return false;
       const isCanvas = typeof HTMLCanvasElement !== "undefined" && img instanceof HTMLCanvasElement;
@@ -6019,213 +5377,11 @@ const canvas = document.getElementById("game");
     }
 
     function getEnemyStyle(type) {
-      if (type === "aphid") return { hp: "#7edb67", icon: "#55b942" };
-      if (type === "mantis") return { hp: "#9dfc8a", icon: "#71cf5d" };
-      if (type === "locust") return { hp: "#d8b181", icon: "#bf915e" };
-      if (type === "ladybug") return { hp: "#ff8f8f", icon: "#de5656" };
-      if (type === "gatecrasher") return { hp: "#ffb170", icon: "#d8702f" };
-      return { hp: "#a6e08b", icon: "#6dbb58" };
+      return rendering.getEnemyStyle(type);
     }
 
     function getEnemyLabel(type) {
-      if (type === "aphid") return "Aphid";
-      if (type === "mantis") return "Praying Mantis";
-      if (type === "locust") return "Locust";
-      if (type === "ladybug") return "Ladybug";
-      if (type === "caterpillar") return "Caterpillar";
-      if (type === "gatecrasher") return "Gate Crasher";
-      return "Bug";
-    }
-
-    function drawEnemyTypeBadge(type, x, y, color) {
-      ctx.fillStyle = color;
-      ctx.beginPath();
-      ctx.arc(x, y, 4.6, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = "rgba(20, 20, 20, 0.85)";
-      ctx.lineWidth = 1;
-      ctx.stroke();
-
-      ctx.save();
-      ctx.translate(x, y);
-      ctx.strokeStyle = "#ffffff";
-      ctx.fillStyle = "#ffffff";
-      ctx.lineWidth = 1.15;
-      ctx.lineCap = "round";
-      ctx.lineJoin = "round";
-
-      if (type === "aphid") {
-        ctx.beginPath();
-        ctx.ellipse(0, 0, 1.9, 1.5, 0, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.arc(2.3, -0.2, 0.9, 0, Math.PI * 2);
-        ctx.stroke();
-      } else if (type === "mantis") {
-        ctx.beginPath();
-        ctx.moveTo(-2.2, 1.6);
-        ctx.lineTo(0.2, -1.8);
-        ctx.lineTo(2.2, 1.6);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(0.2, -1.8);
-        ctx.lineTo(0.2, 2);
-        ctx.stroke();
-      } else if (type === "locust") {
-        ctx.beginPath();
-        ctx.ellipse(-0.4, -0.1, 2.1, 1.2, -0.25, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(0.6, 0.6);
-        ctx.lineTo(2.6, 2.3);
-        ctx.stroke();
-      } else if (type === "ladybug") {
-        ctx.beginPath();
-        ctx.arc(0, 0.1, 2.1, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(0, -2.1);
-        ctx.lineTo(0, 2.1);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.arc(-0.9, 0, 0.36, 0, Math.PI * 2);
-        ctx.arc(1, 0, 0.36, 0, Math.PI * 2);
-        ctx.fill();
-      } else {
-        if (type === "gatecrasher") {
-          ctx.beginPath();
-          ctx.ellipse(0, 0, 2.3, 1.4, 0, 0, Math.PI * 2);
-          ctx.stroke();
-          ctx.beginPath();
-          ctx.moveTo(0.4, 0.8);
-          ctx.lineTo(2.6, 2.3);
-          ctx.stroke();
-        } else {
-          ctx.beginPath();
-          for (let i = -2; i <= 2; i++) {
-            ctx.arc(i * 0.85, 0, 0.72, 0, Math.PI * 2);
-          }
-          ctx.stroke();
-        }
-      }
-      ctx.restore();
-    }
-
-    function drawEnemyStatusChip(x, y, kind, fill, stroke = "rgba(10, 14, 22, 0.95)", size = 4.1) {
-      ctx.fillStyle = fill;
-      ctx.beginPath();
-      ctx.arc(x, y, size, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = stroke;
-      ctx.lineWidth = 0.9;
-      ctx.stroke();
-      ctx.save();
-      ctx.translate(x, y);
-      const glyphScale = size / 4.1;
-      ctx.scale(glyphScale, glyphScale);
-      ctx.strokeStyle = "#f7fbff";
-      ctx.fillStyle = "#f7fbff";
-      ctx.lineWidth = 0.9;
-      ctx.lineCap = "round";
-      ctx.lineJoin = "round";
-      if (kind === "runner") {
-        ctx.beginPath();
-        ctx.moveTo(-2.2, -1.2);
-        ctx.lineTo(1.7, -1.2);
-        ctx.moveTo(-1.4, 0);
-        ctx.lineTo(2.3, 0);
-        ctx.moveTo(-2.2, 1.2);
-        ctx.lineTo(1.2, 1.2);
-        ctx.stroke();
-      } else if (kind === "scout") {
-        ctx.beginPath();
-        ctx.ellipse(0, 0, 2.35, 1.55, 0, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.arc(0, 0, 0.75, 0, Math.PI * 2);
-        ctx.fill();
-      } else if (kind === "jammer") {
-        ctx.beginPath();
-        ctx.arc(-0.3, 0, 0.46, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.arc(-0.2, 0, 1.45, -0.9, 0.9);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.arc(-0.1, 0, 2.25, -0.9, 0.9);
-        ctx.stroke();
-      } else if (kind === "blocker") {
-        ctx.beginPath();
-        ctx.moveTo(0, -2.2);
-        ctx.lineTo(1.8, -1.2);
-        ctx.lineTo(1.4, 1.2);
-        ctx.lineTo(0, 2.2);
-        ctx.lineTo(-1.4, 1.2);
-        ctx.lineTo(-1.8, -1.2);
-        ctx.closePath();
-        ctx.fill();
-      } else if (kind === "tank") {
-        ctx.beginPath();
-        ctx.arc(0, 0, 2.05, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(0, -2.05);
-        ctx.lineTo(0, 2.05);
-        ctx.moveTo(-2.05, 0);
-        ctx.lineTo(2.05, 0);
-        ctx.stroke();
-      } else if (kind === "boss") {
-        ctx.beginPath();
-        ctx.moveTo(-2.4, 1.6);
-        ctx.lineTo(-2.4, -0.7);
-        ctx.lineTo(-1.2, 0.2);
-        ctx.lineTo(0, -1.5);
-        ctx.lineTo(1.2, 0.2);
-        ctx.lineTo(2.4, -0.7);
-        ctx.lineTo(2.4, 1.6);
-        ctx.closePath();
-        ctx.fill();
-      } else if (kind === "slow") {
-        ctx.beginPath();
-        ctx.moveTo(0, -2.3);
-        ctx.lineTo(0.6, -0.8);
-        ctx.lineTo(2.2, -0.8);
-        ctx.lineTo(0.95, 0.25);
-        ctx.lineTo(1.45, 2.2);
-        ctx.lineTo(0, 1.1);
-        ctx.lineTo(-1.45, 2.2);
-        ctx.lineTo(-0.95, 0.25);
-        ctx.lineTo(-2.2, -0.8);
-        ctx.lineTo(-0.6, -0.8);
-        ctx.closePath();
-        ctx.fill();
-      } else if (kind === "jam") {
-        ctx.beginPath();
-        ctx.arc(-0.45, -0.2, 0.38, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.arc(-0.2, 0, 1.35, -0.9, 0.9);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.arc(0, 0, 2.15, -0.85, 0.85);
-        ctx.stroke();
-      } else {
-        ctx.font = "700 6.2px Segoe UI";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(String(kind || ""), 0, 0.2);
-      }
-      ctx.restore();
-    }
-
-    function getPrimaryRoleChip(enemy) {
-      if (enemy.enemyType === "gatecrasher" || enemy.role === "Boss") return { t: "boss", c: "#d39a31" };
-      if (enemy.role === "Scout") return { t: "scout", c: "#6dbb58" };
-      if (enemy.role === "Runner") return { t: "runner", c: "#3c8fe6" };
-      if (enemy.role === "Jammer") return { t: "jammer", c: "#7d78eb" };
-      if (enemy.role === "Blocker") return { t: "blocker", c: "#607484" };
-      if (enemy.role === "Tank") return { t: "tank", c: "#de5656" };
-      return null;
+      return rendering.getEnemyLabel(type);
     }
 
     function drawEnemies() {
@@ -6238,76 +5394,9 @@ const canvas = document.getElementById("game");
         else drawGateCrasher(e);
 
         const style = getEnemyStyle(e.enemyType);
-        const sizeMul = e.sizeMul || 1;
-        const barWidth = Math.max(26, Math.round(26 * sizeMul));
-        const pct = Math.max(0, e.hp / e.maxHp);
-        const barX = e.x - barWidth / 2;
-        const barY = e.y - 21 - (sizeMul - 1) * 8;
-
-        if ((e.slowFlash || 0) > 0) {
-          const slowA = Math.min(0.45, 0.14 + (e.slowFlash / 8) * 0.36);
-          const slowR = 12 + (e.sizeMul || 1) * 3 + ((8 - Math.min(8, e.slowFlash || 0)) * 0.25);
-          ctx.strokeStyle = `rgba(126, 220, 255, ${slowA})`;
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.arc(e.x, e.y, slowR, 0, Math.PI * 2);
-          ctx.stroke();
-        }
-
-        if ((e.hitFlash || 0) > 0) {
-          const hitA = Math.min(0.5, 0.16 + (e.hitFlash / 7) * 0.34);
-          const hitColor = e.hitColor || "rgba(255, 224, 224, 0.95)";
-          const tint = hitColor.replace(/0\.\d+\)|1\)/, `${hitA})`);
-          ctx.fillStyle = tint;
-          ctx.beginPath();
-          ctx.arc(e.x, e.y, 10 + (e.sizeMul || 1) * 4, 0, Math.PI * 2);
-          ctx.fill();
-        }
-
-        if (e.role === "Jammer" && (e.jamRadius || 0) > 0) {
-          const pulse = Math.sin((frameCount + e.id * 7) * 0.14) * 0.5 + 0.5;
-          const auraR = 11 + pulse * 3;
-          const auraA = 0.12 + pulse * 0.1;
-          ctx.strokeStyle = `rgba(125, 120, 235, ${auraA})`;
-          ctx.lineWidth = 1.6;
-          ctx.beginPath();
-          ctx.arc(e.x, e.y, auraR, 0, Math.PI * 2);
-          ctx.stroke();
-        }
-
-        ctx.fillStyle = "rgba(17, 24, 36, 0.34)";
-        ctx.fillRect(barX, barY, barWidth, 4.2);
-        ctx.fillStyle = style.hp;
-        ctx.fillRect(barX, barY, barWidth * pct, 4.2);
-        ctx.fillStyle = "rgba(255, 255, 255, 0.24)";
-        ctx.fillRect(barX, barY, barWidth * pct, 1);
-        ctx.strokeStyle = "rgba(235, 243, 255, 0.45)";
-        ctx.lineWidth = 0.7;
-        ctx.strokeRect(barX, barY, barWidth, 4.2);
-
-        // Always-on larger role marker for quick readability.
-        const roleChip = getPrimaryRoleChip(e);
-        if (roleChip) {
-          const roleX = e.x + (12 + (sizeMul - 1) * 6);
-          const roleY = e.y - (12 + (sizeMul - 1) * 7);
-          drawEnemyStatusChip(roleX, roleY, roleChip.t, roleChip.c, "rgba(15, 18, 24, 0.96)", 6.5);
-          ctx.strokeStyle = "rgba(255, 255, 255, 0.5)";
-          ctx.lineWidth = 1;
-          ctx.beginPath();
-          ctx.arc(roleX, roleY, 7.9, 0, Math.PI * 2);
-          ctx.stroke();
-        }
-
-        if ((e.slowStatusTimer || 0) > 0) {
-          const sx = e.x - (12 + (sizeMul - 1) * 6);
-          const sy = e.y - (12 + (sizeMul - 1) * 7);
-          drawEnemyStatusChip(sx, sy, "slow", "#76d8f7", "rgba(12, 21, 34, 0.92)", 5.8);
-        }
-        if ((e.jamStatusTimer || 0) > 0) {
-          const jx = e.x - (24 + (sizeMul - 1) * 8);
-          const jy = e.y - (12 + (sizeMul - 1) * 7);
-          drawEnemyStatusChip(jx, jy, "jam", "#8f83ee", "rgba(15, 18, 24, 0.92)", 5.8);
-        }
+        const overlay = rendering.getEnemyOverlayLayout(e);
+        const roleChip = rendering.getPrimaryRoleChip(e);
+        rendering.drawEnemyOverlay(ctx, e, overlay, style, frameCount, roleChip);
       }
     }
 
