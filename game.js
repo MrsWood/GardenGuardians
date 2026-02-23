@@ -253,6 +253,12 @@
     let placementArmed;
     let lastPlacementUndo;
     let lastCanvasPointerDownAt;
+    let lastCanvasPointerType;
+    let lastInteractionPointerType;
+    let mobilePlacementCandidate;
+    let mobilePlacementCandidateAt;
+    let mobilePlacementArmedAt;
+    let lastTowerPlacedAt;
 
     const maxBitesPerVegetable = 8;
     const saveSchemaVersion = 1;
@@ -264,6 +270,10 @@
     const earlyStartBonusPct = 0.25;
     const towerSellRate = 0.72;
     const maxBulletsOnScreen = 420;
+    const mobilePlacementConfirmRadius = 28;
+    const mobilePlacementConfirmWindowMs = 2600;
+    const mobilePlacementArmingDelayMs = 140;
+    const mobilePlacementCooldownMs = 240;
     const waveBalance = gameConfigs.waveBalance;
 
     const towerCosts = gameConfigs.towerCosts;
@@ -307,7 +317,7 @@
     function syncLandingCareerHint() {
       if (!landingHintEl) return;
       const c = ensureCareerStats(profileData || getDefaultProfileData());
-      landingHintEl.textContent = `Tip: Build towers, start waves early for +25% bonus, and bank leftover money. Career: Waves ${c.wavesCleared} â€¢ Bugs ${c.bugsDefeated} â€¢ Banked $${c.bankedTotal} â€¢ Best Wave ${c.bestWave}.`;
+      landingHintEl.textContent = `Tip: Build towers, start waves early for +25% bonus, and bank leftover money. Career: Waves ${c.wavesCleared} | Bugs ${c.bugsDefeated} | Banked $${c.bankedTotal} | Best Wave ${c.bestWave}.`;
     }
 
     function loadProfileData() {
@@ -1134,6 +1144,12 @@
       placementArmed = !isCoarsePointer;
       lastPlacementUndo = null;
       lastCanvasPointerDownAt = 0;
+      lastCanvasPointerType = "";
+      lastInteractionPointerType = "";
+      mobilePlacementCandidate = null;
+      mobilePlacementCandidateAt = 0;
+      mobilePlacementArmedAt = 0;
+      lastTowerPlacedAt = 0;
       selectedTowerId = null;
       frameCount = 0;
       scoreSubmittedForWave = false;
@@ -1288,6 +1304,12 @@
       placementArmed = !isCoarsePointer;
       lastPlacementUndo = null;
       lastCanvasPointerDownAt = 0;
+      lastCanvasPointerType = "";
+      lastInteractionPointerType = "";
+      mobilePlacementCandidate = null;
+      mobilePlacementCandidateAt = 0;
+      mobilePlacementArmedAt = 0;
+      lastTowerPlacedAt = 0;
       selectedTowerId = Number(run.selectedTowerId) || null;
       frameCount = Number(run.frameCount) || 0;
       nextEnemyId = Number(run.nextEnemyId) || 1;
@@ -1837,7 +1859,7 @@
       const total = Math.max(6, Math.round(baseTotal * profile.waveCountMul * levelWaveMul));
       const comp = estimateWaveComposition(lvl, nextWave, total, nextIsBoss);
       const previewParts = [
-        `Wave ${nextWave}/${lvl.waves} â€¢ ${nextIsBoss ? "Boss Wave" : "Regular Wave"}`,
+        `Wave ${nextWave}/${lvl.waves} | ${nextIsBoss ? "Boss Wave" : "Regular Wave"}`,
         `Total Enemies: ${total}`,
         ...comp.slice(0, 4),
         "Tip: Start early for +25% clear bonus"
@@ -2098,7 +2120,7 @@
         def.btn.setAttribute("aria-pressed", "false");
         def.btn.setAttribute("title", `${def.name} ($${def.cost}) [${def.hotkey}]`);
         def.btn.setAttribute("aria-label", `${def.name} ($${def.cost}) [${def.hotkey}]`);
-        def.btn.setAttribute("data-tooltip", `${def.name}  â€¢  $${def.cost}  â€¢  ${def.role}`);
+        def.btn.setAttribute("data-tooltip", `${def.name} | $${def.cost} | ${def.role}`);
 
         while (def.btn.firstChild) def.btn.removeChild(def.btn.firstChild);
 
@@ -2145,12 +2167,30 @@
       });
     }
 
-    function setSelectedTowerType(type) {
+    function isTouchPlacementMode(event = null) {
+      if (isCoarsePointer) return true;
+      const fromEvent = !!(event && (
+        event.pointerType === "touch"
+        || (event.sourceCapabilities && event.sourceCapabilities.firesTouchEvents)
+      ));
+      if (fromEvent) return true;
+      const recentCanvasTouch = lastCanvasPointerType === "touch" && (Date.now() - (lastCanvasPointerDownAt || 0)) < 1600;
+      if (recentCanvasTouch) return true;
+      return lastInteractionPointerType === "touch";
+    }
+
+    function setSelectedTowerType(type, sourceEvent = null) {
       selectedTowerType = type;
-      if (isCoarsePointer) placementArmed = true;
+      const touchPlacementMode = isTouchPlacementMode(sourceEvent);
+      if (touchPlacementMode) {
+        placementArmed = true;
+        mobilePlacementCandidate = null;
+        mobilePlacementCandidateAt = 0;
+        mobilePlacementArmedAt = Date.now();
+      }
       syncTowerSelectionUI();
       const label = getTowerDisplayName(type);
-      if (isCoarsePointer) setStatus(`${label} armed. Tap field to place once.`, "warn");
+      if (touchPlacementMode) setStatus(`${label} armed. Tap field to choose spot, then tap again to place.`, "warn");
       else setStatus(`${label} selected.`, "warn");
     }
 
@@ -2761,34 +2801,35 @@
       }
     }
 
+    function evaluateTowerPlacement(x, y) {
+      if (!Number.isFinite(x) || !Number.isFinite(y)) return { ok: false, reason: "invalid" };
+      const towerCost = towerCosts[selectedTowerType];
+      if (!Number.isFinite(towerCost) || money < towerCost) return { ok: false, reason: "money" };
+      if (intersectsRoad(x, y)) return { ok: false, reason: "road" };
+      if (intersectsCrater(x, y, towerRadius + 2)) return { ok: false, reason: "crater" };
+      for (const t of towers) {
+        if (Math.hypot(t.x - x, t.y - y) < towerRadius * 2 + 8) return { ok: false, reason: "tower" };
+      }
+      return { ok: true, reason: "" };
+    }
+
+    function getPlacementFailureMessage(reason) {
+      if (reason === "invalid") return "Invalid click position detected. Try reloading the page.";
+      if (reason === "money") return "Not enough money to place a tower.";
+      if (reason === "road") return "You cannot place towers on the road.";
+      if (reason === "crater") return "That crater is unstable. You cannot rebuild there.";
+      if (reason === "tower") return "Too close to another tower.";
+      return "Cannot place tower here.";
+    }
+
     function placeTower(x, y) {
       if (gameOver || levelComplete) return false;
-      if (!Number.isFinite(x) || !Number.isFinite(y)) {
-        setStatus("Invalid click position detected. Try reloading the page.", "danger");
+      const placementCheck = evaluateTowerPlacement(x, y);
+      if (!placementCheck.ok) {
+        setStatus(getPlacementFailureMessage(placementCheck.reason), "danger");
         return false;
       }
       const towerCost = towerCosts[selectedTowerType];
-      if (money < towerCost) {
-        setStatus("Not enough money to place a tower.", "danger");
-        return false;
-      }
-
-      if (intersectsRoad(x, y)) {
-        setStatus("You cannot place towers on the road.", "danger");
-        return false;
-      }
-
-      if (intersectsCrater(x, y, towerRadius + 2)) {
-        setStatus("That crater is unstable. You cannot rebuild there.", "danger");
-        return false;
-      }
-
-      for (const t of towers) {
-        if (Math.hypot(t.x - x, t.y - y) < towerRadius * 2 + 8) {
-          setStatus("Too close to another tower.", "danger");
-          return false;
-        }
-      }
 
       if (selectedTowerType === "glue") {
         towers.push({
@@ -2869,6 +2910,61 @@
       return true;
     }
 
+    function drawMobilePlacementCandidate() {
+      if (!gameStarted || gameOver || levelComplete || !placementArmed || !mobilePlacementCandidate) return;
+      const age = Date.now() - (mobilePlacementCandidateAt || 0);
+      if (age > mobilePlacementConfirmWindowMs) {
+        mobilePlacementCandidate = null;
+        mobilePlacementCandidateAt = 0;
+        return;
+      }
+      const x = mobilePlacementCandidate.x;
+      const y = mobilePlacementCandidate.y;
+      if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+
+      const check = evaluateTowerPlacement(x, y);
+      const ok = !!check.ok;
+      const pulse = 0.8 + Math.sin(frameCount * 0.17) * 0.18;
+      const outerR = 13 + (ok ? 1.8 : 0.8) * pulse;
+      const innerR = 4.2 + (ok ? 0.6 : 0.2) * pulse;
+
+      ctx.save();
+      ctx.globalCompositeOperation = "source-over";
+      ctx.lineWidth = 2.2;
+      ctx.strokeStyle = ok ? "rgba(142, 243, 171, 0.95)" : "rgba(255, 132, 132, 0.92)";
+      ctx.fillStyle = ok ? "rgba(58, 180, 95, 0.28)" : "rgba(180, 58, 58, 0.24)";
+      ctx.beginPath();
+      ctx.arc(x, y, outerR, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = ok ? "rgba(182, 255, 204, 0.92)" : "rgba(255, 200, 200, 0.9)";
+      ctx.beginPath();
+      ctx.arc(x, y, innerR, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = ok ? "rgba(224, 255, 232, 0.92)" : "rgba(255, 224, 224, 0.92)";
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.moveTo(x - 7, y);
+      ctx.lineTo(x + 7, y);
+      ctx.moveTo(x, y - 7);
+      ctx.lineTo(x, y + 7);
+      ctx.stroke();
+
+      if (!ok) {
+        ctx.strokeStyle = "rgba(255, 98, 98, 0.9)";
+        ctx.lineWidth = 2.4;
+        ctx.beginPath();
+        ctx.moveTo(x - 8, y - 8);
+        ctx.lineTo(x + 8, y + 8);
+        ctx.moveTo(x + 8, y - 8);
+        ctx.lineTo(x - 8, y + 8);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
     function upgradeTowerAt(x, y) {
       if (gameOver || levelComplete) return;
       const chosen = findTowerAt(x, y);
@@ -2879,9 +2975,23 @@
       const rect = canvas.getBoundingClientRect();
       const scaleX = canvas.width / rect.width;
       const scaleY = canvas.height / rect.height;
+      let clientX = Number.isFinite(e?.clientX) ? e.clientX : null;
+      let clientY = Number.isFinite(e?.clientY) ? e.clientY : null;
+
+      if ((clientX === null || clientY === null) && e?.touches?.length) {
+        clientX = Number.isFinite(e.touches[0].clientX) ? e.touches[0].clientX : clientX;
+        clientY = Number.isFinite(e.touches[0].clientY) ? e.touches[0].clientY : clientY;
+      }
+      if ((clientX === null || clientY === null) && e?.changedTouches?.length) {
+        clientX = Number.isFinite(e.changedTouches[0].clientX) ? e.changedTouches[0].clientX : clientX;
+        clientY = Number.isFinite(e.changedTouches[0].clientY) ? e.changedTouches[0].clientY : clientY;
+      }
+      if (clientX === null || clientY === null) {
+        return { x: NaN, y: NaN };
+      }
       return {
-        x: (e.clientX - rect.left) * scaleX,
-        y: (e.clientY - rect.top) * scaleY
+        x: (clientX - rect.left) * scaleX,
+        y: (clientY - rect.top) * scaleY
       };
     }
 
@@ -4968,6 +5078,7 @@
       drawSceneLighting();
       drawCraters();
       drawBunnies();
+      drawMobilePlacementCandidate();
       drawTowers();
       drawImplosions();
       drawEnemies();
@@ -5003,8 +5114,10 @@
       requestAnimationFrame(gameLoop);
     }
 
-    canvas.addEventListener("pointerdown", () => {
+    canvas.addEventListener("pointerdown", (e) => {
       lastCanvasPointerDownAt = Date.now();
+      lastCanvasPointerType = e?.pointerType || "";
+      if (e?.pointerType) lastInteractionPointerType = e.pointerType;
     }, { passive: true });
 
     canvas.addEventListener("click", (e) => {
@@ -5014,6 +5127,10 @@
       const existing = findTowerAt(x, y);
       if (existing) {
         selectedTowerId = existing.id;
+        if (isCoarsePointer) {
+          mobilePlacementCandidate = null;
+          mobilePlacementCandidateAt = 0;
+        }
         existing.showRangeUntil = frameCount + 220;
         showTowerFloatCardBriefly(2600);
         setStatus(`${getTowerDisplayName(existing.type)} selected.`, "warn");
@@ -5021,9 +5138,16 @@
         return;
       }
       selectedTowerId = null;
-      if (isCoarsePointer) {
+      const touchPlacementMode = isTouchPlacementMode(e);
+      if (touchPlacementMode) {
         if (!placementArmed) {
           setStatus("Tap a tower icon to arm placement.", "warn");
+          syncHUD();
+          return;
+        }
+        const armedAgo = Date.now() - (mobilePlacementArmedAt || 0);
+        if (armedAgo < mobilePlacementArmingDelayMs) {
+          setStatus("Placement armed. Tap field to choose a spot.", "warn");
           syncHUD();
           return;
         }
@@ -5042,9 +5166,40 @@
           syncHUD();
           return;
         }
+        const now = Date.now();
+        const hasCandidate = !!mobilePlacementCandidate;
+        const candidateAge = now - (mobilePlacementCandidateAt || 0);
+        const nearCandidate = hasCandidate
+          && candidateAge <= mobilePlacementConfirmWindowMs
+          && Math.hypot(x - mobilePlacementCandidate.x, y - mobilePlacementCandidate.y) <= mobilePlacementConfirmRadius;
+
+        if (!nearCandidate) {
+          const check = evaluateTowerPlacement(x, y);
+          if (!check.ok) {
+            setStatus(getPlacementFailureMessage(check.reason), "danger");
+            syncHUD();
+            return;
+          }
+          mobilePlacementCandidate = { x, y };
+          mobilePlacementCandidateAt = now;
+          setStatus("Spot selected. Tap the same spot again to place.", "warn");
+          syncHUD();
+          return;
+        }
+
+        if (now - (lastTowerPlacedAt || 0) < mobilePlacementCooldownMs) {
+          setStatus("Please wait a moment before placing again.", "warn");
+          syncHUD();
+          return;
+        }
       }
       const placed = placeTower(x, y);
-      if (placed && isCoarsePointer) placementArmed = false;
+      if (placed && touchPlacementMode) {
+        mobilePlacementCandidate = null;
+        mobilePlacementCandidateAt = 0;
+        placementArmed = false;
+        lastTowerPlacedAt = Date.now();
+      }
     });
 
     canvas.addEventListener("contextmenu", (e) => {
@@ -5058,14 +5213,14 @@
     if (pauseBtn) pauseBtn.addEventListener("click", pauseToLanding);
     nextLevelBtn.addEventListener("click", goToNextLevel);
     resetBtn.addEventListener("click", handleRestartClick);
-    if (sprayTowerBtn) sprayTowerBtn.addEventListener("click", () => setSelectedTowerType("spray"));
-    if (glueTowerBtn) glueTowerBtn.addEventListener("click", () => setSelectedTowerType("glue"));
-    if (hoseTowerBtn) hoseTowerBtn.addEventListener("click", () => setSelectedTowerType("hose"));
-    if (saltTowerBtn) saltTowerBtn.addEventListener("click", () => setSelectedTowerType("salt"));
+    if (sprayTowerBtn) sprayTowerBtn.addEventListener("click", (e) => setSelectedTowerType("spray", e));
+    if (glueTowerBtn) glueTowerBtn.addEventListener("click", (e) => setSelectedTowerType("glue", e));
+    if (hoseTowerBtn) hoseTowerBtn.addEventListener("click", (e) => setSelectedTowerType("hose", e));
+    if (saltTowerBtn) saltTowerBtn.addEventListener("click", (e) => setSelectedTowerType("salt", e));
     const towerSelectKeys = (e, type) => {
       if (e.key === "Enter" || e.key === " ") {
         e.preventDefault();
-        setSelectedTowerType(type);
+        setSelectedTowerType(type, e);
       }
     };
     if (sprayTowerBtn) sprayTowerBtn.addEventListener("keydown", (e) => towerSelectKeys(e, "spray"));
@@ -5249,8 +5404,14 @@
     });
     document.addEventListener("keydown", handleTowerHotkeys);
     document.addEventListener("mousemove", markUiInteraction, { passive: true });
-    document.addEventListener("mousedown", markUiInteraction, { passive: true });
-    document.addEventListener("touchstart", markUiInteraction, { passive: true });
+    document.addEventListener("mousedown", (e) => {
+      lastInteractionPointerType = "mouse";
+      markUiInteraction(e);
+    }, { passive: true });
+    document.addEventListener("touchstart", (e) => {
+      lastInteractionPointerType = "touch";
+      markUiInteraction(e);
+    }, { passive: true });
     document.addEventListener("keydown", markUiInteraction);
 
     loadHighscores();
