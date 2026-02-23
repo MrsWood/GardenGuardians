@@ -406,10 +406,12 @@ const canvas = document.getElementById("game");
     const difficultyHintEl = document.getElementById("difficultyHint");
     const levelSelect = document.getElementById("levelSelect");
     const tutorialAutoToggle = document.getElementById("tutorialAutoToggle");
+    const holdPlaceToggle = document.getElementById("holdPlaceToggle");
     const levelStatEl = document.getElementById("levelStat");
     const difficultyStatEl = document.getElementById("difficultyStat");
     const instructionsBtn = document.getElementById("instructionsBtn");
     const hudMuteBtn = document.getElementById("hudMuteBtn");
+    const undoPlaceBtn = document.getElementById("undoPlaceBtn");
     const audioEnabledToggle = document.getElementById("audioEnabledToggle");
     const musicEnabledToggle = document.getElementById("musicEnabledToggle");
     const sfxVolumeRange = document.getElementById("sfxVolumeRange");
@@ -445,6 +447,7 @@ const canvas = document.getElementById("game");
     const towerFloatSellBtn = document.getElementById("towerFloatSellBtn");
     const towerFloatSellValEl = document.getElementById("towerFloatSellVal");
     const towerFloatUpgradeValEl = document.getElementById("towerFloatUpgradeVal");
+    const isCoarsePointer = (window.matchMedia && window.matchMedia("(pointer: coarse)").matches) || (navigator.maxTouchPoints || 0) > 0;
 
     let money;
     let bank;
@@ -515,6 +518,9 @@ const canvas = document.getElementById("game");
     let lastDefeatSfxAt;
     let lastShotSfxAt;
     let lastBossHitSfxAt;
+    let placementArmed;
+    let lastPlacementUndo;
+    let lastCanvasPointerDownAt;
 
     const maxBitesPerVegetable = 8;
     const saveSchemaVersion = 1;
@@ -625,11 +631,11 @@ const canvas = document.getElementById("game");
     };
 
     const enemyRoleStats = {
-      aphid: { hpMul: 0.8, speedMul: 1.3, rewardMul: 0.92, glueResist: 0.07, armor: 0, role: "Scout" },
-      mantis: { hpMul: 1.06, speedMul: 1.06, rewardMul: 1.06, glueResist: 0.14, armor: 0.03, role: "Hunter" },
-      locust: { hpMul: 0.95, speedMul: 1.18, rewardMul: 1, glueResist: 0.18, armor: 0.02, role: "Swarm" },
-      ladybug: { hpMul: 1.45, speedMul: 0.82, rewardMul: 1.32, glueResist: 0.22, armor: 0.12, role: "Tank" },
-      caterpillar: { hpMul: 1.2, speedMul: 0.9, rewardMul: 1.18, glueResist: 0.34, armor: 0.07, role: "Bulwark" },
+      aphid: { hpMul: 0.8, speedMul: 1.26, rewardMul: 0.92, glueResist: 0.07, armor: 0, role: "Scout" },
+      mantis: { hpMul: 1.04, speedMul: 1.02, rewardMul: 1.12, glueResist: 0.16, armor: 0.04, role: "Jammer", jamRadius: 96, jamFireDelayMul: 1.45 },
+      locust: { hpMul: 0.72, speedMul: 1.48, rewardMul: 0.9, glueResist: 0.12, armor: 0.01, role: "Runner" },
+      ladybug: { hpMul: 1.36, speedMul: 0.84, rewardMul: 1.28, glueResist: 0.24, armor: 0.11, role: "Tank" },
+      caterpillar: { hpMul: 1.6, speedMul: 0.72, rewardMul: 1.26, glueResist: 0.42, armor: 0.15, role: "Blocker" },
       gatecrasher: { hpMul: 3.6, speedMul: 0.78, rewardMul: 3.8, glueResist: 0.5, armor: 0.18, role: "Boss", sizeMul: 1.9 }
     };
 
@@ -672,6 +678,7 @@ const canvas = document.getElementById("game");
         lastLevel: 1,
         tutorialSeen: false,
         tutorialAutoStart: false,
+        mobileHoldToPlace: false,
         audioEnabled: true,
         musicEnabled: true,
         sfxVolume: 0.65,
@@ -699,6 +706,7 @@ const canvas = document.getElementById("game");
       if (typeof loaded.lastPlayerName !== "string") loaded.lastPlayerName = "";
       loaded.tutorialSeen = !!loaded.tutorialSeen;
       loaded.tutorialAutoStart = !!loaded.tutorialAutoStart;
+      loaded.mobileHoldToPlace = !!loaded.mobileHoldToPlace;
       loaded.audioEnabled = loaded.audioEnabled !== false;
       loaded.musicEnabled = loaded.musicEnabled !== false;
       loaded.sfxVolume = Math.max(0, Math.min(1, Number(loaded.sfxVolume)));
@@ -960,9 +968,67 @@ const canvas = document.getElementById("game");
     function syncAudioUi() {
       if (audioEnabledToggle) audioEnabledToggle.checked = profileData?.audioEnabled !== false;
       if (musicEnabledToggle) musicEnabledToggle.checked = profileData?.musicEnabled !== false;
+      if (holdPlaceToggle) holdPlaceToggle.checked = !!profileData?.mobileHoldToPlace;
       if (sfxVolumeRange) sfxVolumeRange.value = String(Math.round((Number(profileData?.sfxVolume) || 0.65) * 100));
       if (musicVolumeRange) musicVolumeRange.value = String(Math.round((Number(profileData?.musicVolume) || 0.3) * 100));
       if (hudMuteBtn) hudMuteBtn.textContent = profileData?.audioEnabled === false ? "Unmute" : "Mute";
+    }
+
+    function updatePlacementUndoUi() {
+      if (!undoPlaceBtn) return;
+      if (!gameStarted || !lastPlacementUndo) {
+        undoPlaceBtn.hidden = true;
+        return;
+      }
+      const remainingMs = lastPlacementUndo.expiresAt - Date.now();
+      if (remainingMs <= 0) {
+        lastPlacementUndo = null;
+        undoPlaceBtn.hidden = true;
+        return;
+      }
+      const sec = Math.max(1, Math.ceil(remainingMs / 1000));
+      undoPlaceBtn.hidden = false;
+      undoPlaceBtn.disabled = false;
+      undoPlaceBtn.textContent = `Undo Place (${sec})`;
+    }
+
+    function registerPlacementUndo(towerId, refund, type) {
+      lastPlacementUndo = {
+        towerId,
+        refund,
+        type,
+        expiresAt: Date.now() + 3200
+      };
+      updatePlacementUndoUi();
+    }
+
+    function undoLastPlacement() {
+      if (!lastPlacementUndo) return;
+      const item = lastPlacementUndo;
+      if (Date.now() > item.expiresAt) {
+        lastPlacementUndo = null;
+        updatePlacementUndoUi();
+        return;
+      }
+      const tower = towers.find(t => t.id === item.towerId);
+      if (!tower) {
+        lastPlacementUndo = null;
+        updatePlacementUndoUi();
+        return;
+      }
+      if ((tower.totalSpent || 0) !== item.refund || tower.level !== 1) {
+        setStatus("Undo unavailable after tower changes.", "warn");
+        lastPlacementUndo = null;
+        updatePlacementUndoUi();
+        return;
+      }
+      towers = towers.filter(t => t.id !== item.towerId);
+      if (selectedTowerId === item.towerId) selectedTowerId = null;
+      money += item.refund;
+      lastPlacementUndo = null;
+      setStatus(`Placement undone: refunded $${item.refund}.`, "good");
+      syncHUD();
+      saveRunSnapshot();
     }
 
     function getDefaultTutorialProgress() {
@@ -1422,8 +1488,38 @@ const canvas = document.getElementById("game");
       return base + Math.floor(Math.random() * (jitter + 1));
     }
 
-    function pickEnemyTypeForLevel(cfg) {
-      const weights = cfg.enemyWeights;
+    function getWaveEnemyWeights(cfg, waveNumber) {
+      const base = cfg?.enemyWeights || {};
+      const defaultWeight = { aphid: 1, mantis: 1, locust: 1, ladybug: 1, caterpillar: 1 };
+      const mergedBase = {
+        aphid: Math.max(0, Number(base.aphid ?? defaultWeight.aphid)),
+        mantis: Math.max(0, Number(base.mantis ?? defaultWeight.mantis)),
+        locust: Math.max(0, Number(base.locust ?? defaultWeight.locust)),
+        ladybug: Math.max(0, Number(base.ladybug ?? defaultWeight.ladybug)),
+        caterpillar: Math.max(0, Number(base.caterpillar ?? defaultWeight.caterpillar))
+      };
+      let unlockMask;
+      if (waveNumber <= 2) {
+        unlockMask = { aphid: 1, locust: 1, mantis: 0, ladybug: 0, caterpillar: 0 };
+      } else if (waveNumber <= 4) {
+        unlockMask = { aphid: 1, locust: 1, mantis: 0, ladybug: 0, caterpillar: 0.8 };
+      } else if (waveNumber <= 6) {
+        unlockMask = { aphid: 1, locust: 1, mantis: 0.8, ladybug: 0.65, caterpillar: 1 };
+      } else {
+        unlockMask = { aphid: 1, locust: 1, mantis: 1, ladybug: 1, caterpillar: 1 };
+      }
+      const resolved = {};
+      for (const type of enemyTypes) {
+        resolved[type] = mergedBase[type] * (unlockMask[type] || 0);
+      }
+      let total = 0;
+      for (const type of enemyTypes) total += resolved[type];
+      if (total <= 0) return mergedBase;
+      return resolved;
+    }
+
+    function pickEnemyTypeForLevel(cfg, waveNumber) {
+      const weights = getWaveEnemyWeights(cfg, waveNumber);
       if (!weights) return enemyTypes[Math.floor(Math.random() * enemyTypes.length)];
       let total = 0;
       for (const type of enemyTypes) total += Math.max(0, Number(weights[type] || 0));
@@ -1468,6 +1564,9 @@ const canvas = document.getElementById("game");
       gameOver = false;
       lastClearedWave = 0;
       selectedTowerType = "spray";
+      placementArmed = !isCoarsePointer;
+      lastPlacementUndo = null;
+      lastCanvasPointerDownAt = 0;
       selectedTowerId = null;
       frameCount = 0;
       scoreSubmittedForWave = false;
@@ -1608,6 +1707,9 @@ const canvas = document.getElementById("game");
       wave = Number(run.wave) || 0;
       lastClearedWave = Number(run.lastClearedWave) || 0;
       selectedTowerType = run.selectedTowerType || "spray";
+      placementArmed = !isCoarsePointer;
+      lastPlacementUndo = null;
+      lastCanvasPointerDownAt = 0;
       selectedTowerId = Number(run.selectedTowerId) || null;
       frameCount = Number(run.frameCount) || 0;
       nextEnemyId = Number(run.nextEnemyId) || 1;
@@ -1812,6 +1914,7 @@ const canvas = document.getElementById("game");
       renderUpgradePanel();
       renderFloatingTowerCard();
       renderNextWavePreview();
+      updatePlacementUndoUi();
     }
 
     function goToNextLevel() {
@@ -1927,7 +2030,7 @@ const canvas = document.getElementById("game");
     }
 
     function estimateWaveComposition(lvl, waveNumber, totalCount, includesBoss) {
-      const weights = lvl.enemyWeights || {};
+      const weights = getWaveEnemyWeights(lvl, waveNumber);
       let weightSum = 0;
       for (const type of enemyTypes) weightSum += Math.max(0, Number(weights[type] || 0));
       const normalizedWeights = {};
@@ -2091,6 +2194,8 @@ const canvas = document.getElementById("game");
       let armor = stats.armor || 0;
       let glueResist = stats.glueResist || 0;
       let sizeMul = stats.sizeMul || 1;
+      let jamRadius = stats.jamRadius || 0;
+      let jamFireDelayMul = stats.jamFireDelayMul || 1;
       let strengthMul = 1;
       if (enemyType === "gatecrasher") {
         hpScaled = Math.round(hpScaled * profile.bossHpMul);
@@ -2120,6 +2225,8 @@ const canvas = document.getElementById("game");
         reward: Math.max(1, Math.round(reward * stats.rewardMul)),
         glueResist,
         armor,
+        jamRadius,
+        jamFireDelayMul,
         sizeMul,
         strengthMul,
         role: stats.role || "",
@@ -2359,9 +2466,11 @@ const canvas = document.getElementById("game");
 
     function setSelectedTowerType(type) {
       selectedTowerType = type;
+      if (isCoarsePointer) placementArmed = true;
       syncTowerSelectionUI();
       const label = getTowerDisplayName(type);
-      setStatus(`${label} selected.`, "warn");
+      if (isCoarsePointer) setStatus(`${label} armed. Tap field to place once.`, "warn");
+      else setStatus(`${label} selected.`, "warn");
     }
 
     function handleTowerHotkeys(e) {
@@ -2938,31 +3047,31 @@ const canvas = document.getElementById("game");
     }
 
     function placeTower(x, y) {
-      if (gameOver || levelComplete) return;
+      if (gameOver || levelComplete) return false;
       if (!Number.isFinite(x) || !Number.isFinite(y)) {
         setStatus("Invalid click position detected. Try reloading the page.", "danger");
-        return;
+        return false;
       }
       const towerCost = towerCosts[selectedTowerType];
       if (money < towerCost) {
         setStatus("Not enough money to place a tower.", "danger");
-        return;
+        return false;
       }
 
       if (intersectsRoad(x, y)) {
         setStatus("You cannot place towers on the road.", "danger");
-        return;
+        return false;
       }
 
       if (intersectsCrater(x, y, towerRadius + 2)) {
         setStatus("That crater is unstable. You cannot rebuild there.", "danger");
-        return;
+        return false;
       }
 
       for (const t of towers) {
         if (Math.hypot(t.x - x, t.y - y) < towerRadius * 2 + 8) {
           setStatus("Too close to another tower.", "danger");
-          return;
+          return false;
         }
       }
 
@@ -3035,11 +3144,14 @@ const canvas = document.getElementById("game");
       selectedTowerId = towers[towers.length - 1].id;
       showTowerFloatCardBriefly(1800);
       money -= towerCost;
-      setStatus("Tower placed.", "good");
+      registerPlacementUndo(selectedTowerId, towerCost, selectedTowerType);
+      if (isCoarsePointer) setStatus("Tower placed. Tap a tower icon to arm next placement.", "good");
+      else setStatus("Tower placed.", "good");
       playSfx("place");
       markTutorialProgress("placedTower");
       syncHUD();
       saveRunSnapshot();
+      return true;
     }
 
     function upgradeTowerAt(x, y) {
@@ -3161,7 +3273,7 @@ const canvas = document.getElementById("game");
 
       let bossSpawned = !currentWaveHasBoss;
       const spawnTimer = setInterval(() => {
-        let enemyType = pickEnemyTypeForLevel(lvl);
+        let enemyType = pickEnemyTypeForLevel(lvl, wave);
         if (!bossSpawned) {
           enemyType = "gatecrasher";
           bossSpawned = true;
@@ -3242,6 +3354,7 @@ const canvas = document.getElementById("game");
     function updateSimulation() {
       if (!gameStarted) return;
       frameCount += 1;
+      updatePlacementUndoUi();
 
       bunnySpawnCooldown -= 1;
       if (!gameOver && bunnySpawnCooldown <= 0) {
@@ -3375,13 +3488,25 @@ const canvas = document.getElementById("game");
         if (t.type === "hose" && t.laserFlash > 0) t.laserFlash -= 1;
         if (t.cooldown > 0 || enemies.length === 0) continue;
 
+        let towerJamDelayMul = 1;
+        for (const e of enemies) {
+          if (e.enemyType !== "mantis" || e.state === "leaving") continue;
+          const jr = e.jamRadius || 0;
+          if (jr <= 0) continue;
+          const dx = e.x - t.x;
+          const dy = e.y - t.y;
+          if (dx * dx + dy * dy <= jr * jr) {
+            towerJamDelayMul = Math.max(towerJamDelayMul, e.jamFireDelayMul || 1);
+          }
+        }
+
         const best = pickTarget(t);
 
           if (best) {
           if (t.type === "glue") {
             const lane = getLane(best.laneId);
             if (!lane || !Number.isFinite(lane.totalLength) || lane.totalLength <= 0) {
-              t.cooldown = Math.max(10, Math.round(t.fireRate * 0.35));
+              t.cooldown = Math.max(10, Math.round(t.fireRate * 0.35 * towerJamDelayMul));
               continue;
             }
             const trapDist = Math.min(lane.totalLength - 10, best.pathDist + 22 + t.level * 4.5);
@@ -3468,7 +3593,7 @@ const canvas = document.getElementById("game");
             }
             playTowerShotSfx("spray");
           }
-          t.cooldown = t.fireRate;
+          t.cooldown = Math.round(t.fireRate * towerJamDelayMul);
         }
       }
 
@@ -5461,7 +5586,7 @@ const canvas = document.getElementById("game");
       ctx.translate(x, y);
       ctx.strokeStyle = "#ffffff";
       ctx.fillStyle = "#ffffff";
-      ctx.lineWidth = 0.9;
+      ctx.lineWidth = 1.15;
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
 
@@ -5522,34 +5647,89 @@ const canvas = document.getElementById("game");
       ctx.restore();
     }
 
-    function drawEnemyStatusChip(x, y, text, fill, stroke = "rgba(10, 14, 22, 0.95)") {
+    function drawEnemyStatusChip(x, y, kind, fill, stroke = "rgba(10, 14, 22, 0.95)", size = 4.1) {
       ctx.fillStyle = fill;
       ctx.beginPath();
-      ctx.arc(x, y, 4.1, 0, Math.PI * 2);
+      ctx.arc(x, y, size, 0, Math.PI * 2);
       ctx.fill();
       ctx.strokeStyle = stroke;
       ctx.lineWidth = 0.9;
       ctx.stroke();
+      ctx.save();
+      ctx.translate(x, y);
+      const glyphScale = size / 4.1;
+      ctx.scale(glyphScale, glyphScale);
+      ctx.strokeStyle = "#f7fbff";
       ctx.fillStyle = "#f7fbff";
-      ctx.font = "700 6.4px Segoe UI";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(text, x, y + 0.2);
+      ctx.lineWidth = 0.9;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      if (kind === "runner") {
+        ctx.beginPath();
+        ctx.moveTo(-2.2, -1.2);
+        ctx.lineTo(1.7, -1.2);
+        ctx.moveTo(-1.4, 0);
+        ctx.lineTo(2.3, 0);
+        ctx.moveTo(-2.2, 1.2);
+        ctx.lineTo(1.2, 1.2);
+        ctx.stroke();
+      } else if (kind === "scout") {
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 2.35, 1.55, 0, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(0, 0, 0.75, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (kind === "jammer") {
+        ctx.beginPath();
+        ctx.arc(-0.3, 0, 0.46, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(-0.2, 0, 1.45, -0.9, 0.9);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(-0.1, 0, 2.25, -0.9, 0.9);
+        ctx.stroke();
+      } else if (kind === "blocker") {
+        ctx.beginPath();
+        ctx.moveTo(0, -2.2);
+        ctx.lineTo(1.8, -1.2);
+        ctx.lineTo(1.4, 1.2);
+        ctx.lineTo(0, 2.2);
+        ctx.lineTo(-1.4, 1.2);
+        ctx.lineTo(-1.8, -1.2);
+        ctx.closePath();
+        ctx.fill();
+      } else if (kind === "boss") {
+        ctx.beginPath();
+        ctx.moveTo(-2.4, 1.6);
+        ctx.lineTo(-2.4, -0.7);
+        ctx.lineTo(-1.2, 0.2);
+        ctx.lineTo(0, -1.5);
+        ctx.lineTo(1.2, 0.2);
+        ctx.lineTo(2.4, -0.7);
+        ctx.lineTo(2.4, 1.6);
+        ctx.closePath();
+        ctx.fill();
+      } else {
+        ctx.font = "700 6.2px Segoe UI";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(String(kind || ""), 0, 0.2);
+      }
+      ctx.restore();
     }
 
-    function drawEnemyStatusChips(enemy, startX, y) {
-      const chips = [];
-      if (enemy.enemyType === "gatecrasher" || enemy.role === "Boss") chips.push({ t: "B", c: "#b5522f" });
-      if ((enemy.armor || 0) >= 0.08) chips.push({ t: "A", c: "#5e6d8b" });
-      if ((enemy.slowFlash || 0) > 0) chips.push({ t: "S", c: "#4f98bb" });
-      for (let i = 0; i < chips.length; i += 1) {
-        const chip = chips[i];
-        drawEnemyStatusChip(startX + i * 9.3, y, chip.t, chip.c);
-      }
+    function getPrimaryRoleChip(enemy) {
+      if (enemy.enemyType === "gatecrasher" || enemy.role === "Boss") return { t: "boss", c: "#d39a31" };
+      if (enemy.role === "Scout") return { t: "scout", c: "#6dbb58" };
+      if (enemy.role === "Runner") return { t: "runner", c: "#3c8fe6" };
+      if (enemy.role === "Jammer") return { t: "jammer", c: "#7d78eb" };
+      if (enemy.role === "Blocker") return { t: "blocker", c: "#607484" };
+      return null;
     }
 
     function drawEnemies() {
-      const compactHud = enemies.length > 42;
       for (const e of enemies) {
         if (e.enemyType === "aphid") drawAphid(e);
         else if (e.enemyType === "mantis") drawMantis(e);
@@ -5564,10 +5744,6 @@ const canvas = document.getElementById("game");
         const pct = Math.max(0, e.hp / e.maxHp);
         const barX = e.x - barWidth / 2;
         const barY = e.y - 21 - (sizeMul - 1) * 8;
-
-        const panelW = barWidth + 30;
-        const panelX = e.x - panelW / 2 + 8;
-        const panelY = barY - 11;
 
         if ((e.slowFlash || 0) > 0) {
           const slowA = Math.min(0.45, 0.14 + (e.slowFlash / 8) * 0.36);
@@ -5587,36 +5763,38 @@ const canvas = document.getElementById("game");
           ctx.fill();
         }
 
-        if (!compactHud) {
-          ctx.fillStyle = "rgba(8, 12, 20, 0.58)";
-          ctx.fillRect(panelX, panelY, panelW, 9);
-          ctx.strokeStyle = "rgba(208, 223, 255, 0.28)";
-          ctx.lineWidth = 0.8;
-          ctx.strokeRect(panelX, panelY, panelW, 9);
+        if (e.role === "Jammer" && (e.jamRadius || 0) > 0) {
+          const pulse = Math.sin((frameCount + e.id * 7) * 0.14) * 0.5 + 0.5;
+          const auraR = 11 + pulse * 3;
+          const auraA = 0.12 + pulse * 0.1;
+          ctx.strokeStyle = `rgba(125, 120, 235, ${auraA})`;
+          ctx.lineWidth = 1.6;
+          ctx.beginPath();
+          ctx.arc(e.x, e.y, auraR, 0, Math.PI * 2);
+          ctx.stroke();
         }
 
-        ctx.fillStyle = "rgba(0, 0, 0, 0.52)";
-        ctx.fillRect(barX - 1.2, barY - 1.2, barWidth + 2.4, 6.4);
-
-        ctx.fillStyle = "#1d1d1d";
+        ctx.fillStyle = "rgba(17, 24, 36, 0.34)";
         ctx.fillRect(barX, barY, barWidth, 4.2);
         ctx.fillStyle = style.hp;
         ctx.fillRect(barX, barY, barWidth * pct, 4.2);
         ctx.fillStyle = "rgba(255, 255, 255, 0.24)";
         ctx.fillRect(barX, barY, barWidth * pct, 1);
+        ctx.strokeStyle = "rgba(235, 243, 255, 0.45)";
+        ctx.lineWidth = 0.7;
+        ctx.strokeRect(barX, barY, barWidth, 4.2);
 
-        if (!compactHud) {
-          drawEnemyTypeBadge(e.enemyType, e.x - (15 + (sizeMul - 1) * 5), e.y - 18 - (sizeMul - 1) * 8, style.icon);
-          ctx.fillStyle = "rgba(231, 239, 255, 0.92)";
-          ctx.font = "700 8px Segoe UI";
-          ctx.textAlign = "left";
-          ctx.textBaseline = "middle";
-          const hpNow = Math.max(0, Math.ceil(e.hp));
-          const roleText = e.role ? ` • ${e.role}` : "";
-          ctx.fillText(`${getEnemyLabel(e.enemyType)}${roleText}  ${hpNow}`, panelX + 3, panelY + 4.7);
-          drawEnemyStatusChips(e, panelX + panelW - 12, panelY + 4.7);
-        } else {
-          drawEnemyStatusChips(e, barX + barWidth + 7, barY + 2.1);
+        // Always-on larger role marker for quick readability.
+        const roleChip = getPrimaryRoleChip(e);
+        if (roleChip) {
+          const roleX = e.x + (12 + (sizeMul - 1) * 6);
+          const roleY = e.y - (12 + (sizeMul - 1) * 7);
+          drawEnemyStatusChip(roleX, roleY, roleChip.t, roleChip.c, "rgba(15, 18, 24, 0.96)", 6.5);
+          ctx.strokeStyle = "rgba(255, 255, 255, 0.5)";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.arc(roleX, roleY, 7.9, 0, Math.PI * 2);
+          ctx.stroke();
         }
       }
     }
@@ -5765,6 +5943,10 @@ const canvas = document.getElementById("game");
       requestAnimationFrame(gameLoop);
     }
 
+    canvas.addEventListener("pointerdown", () => {
+      lastCanvasPointerDownAt = Date.now();
+    }, { passive: true });
+
     canvas.addEventListener("click", (e) => {
       if (!gameStarted) return;
       const pos = getCanvasCoords(e);
@@ -5779,7 +5961,30 @@ const canvas = document.getElementById("game");
         return;
       }
       selectedTowerId = null;
-      placeTower(x, y);
+      if (isCoarsePointer) {
+        if (!placementArmed) {
+          setStatus("Tap a tower icon to arm placement.", "warn");
+          syncHUD();
+          return;
+        }
+        if (profileData?.mobileHoldToPlace) {
+          const heldMs = Date.now() - (lastCanvasPointerDownAt || 0);
+          if (heldMs < 260) {
+            setStatus("Hold briefly on the field to place.", "warn");
+            syncHUD();
+            return;
+          }
+        }
+        const topSafePx = 26;
+        const bottomSafePx = 20;
+        if (y < topSafePx || y > canvas.height - bottomSafePx) {
+          setStatus("Tap a little farther from the edge to place.", "warn");
+          syncHUD();
+          return;
+        }
+      }
+      const placed = placeTower(x, y);
+      if (placed && isCoarsePointer) placementArmed = false;
     });
 
     canvas.addEventListener("contextmenu", (e) => {
@@ -5821,6 +6026,14 @@ const canvas = document.getElementById("game");
         profileData.tutorialAutoStart = !!tutorialAutoToggle.checked;
         saveProfileData();
         setStatus(profileData.tutorialAutoStart ? "Tutorial will show at each new start." : "Tutorial auto-start disabled.", "warn");
+      });
+    }
+    if (holdPlaceToggle) {
+      holdPlaceToggle.addEventListener("change", () => {
+        if (!profileData) profileData = getDefaultProfileData();
+        profileData.mobileHoldToPlace = !!holdPlaceToggle.checked;
+        saveProfileData();
+        setStatus(profileData.mobileHoldToPlace ? "Mobile hold-to-place enabled." : "Mobile hold-to-place disabled.", "warn");
       });
     }
     if (audioEnabledToggle) {
@@ -5875,6 +6088,12 @@ const canvas = document.getElementById("game");
         syncAudioUi();
         saveProfileData();
         setStatus(profileData.audioEnabled ? "Audio unmuted." : "Audio muted.", "warn");
+      });
+    }
+    if (undoPlaceBtn) {
+      undoPlaceBtn.addEventListener("click", () => {
+        if (!gameStarted || gameOver || levelComplete) return;
+        undoLastPlacement();
       });
     }
     if (audioTestBtn) {

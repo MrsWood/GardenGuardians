@@ -318,6 +318,13 @@
       margin-bottom: 4px;
     }
 
+    .topRow {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
     .stats {
       display: flex;
       gap: 8px;
@@ -732,6 +739,11 @@
     #hudMuteBtn {
       background: #3c475f;
       min-width: 74px;
+    }
+
+    #undoPlaceBtn {
+      background: #2f6f54;
+      min-width: 112px;
     }
 
     #audioTestBtn {
@@ -1965,6 +1977,167 @@
       opacity: 0.62;
       cursor: default;
       transform: none;
+    }
+
+    .roleLegend {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 8px;
+      border-radius: 9px;
+      border: 1px solid rgba(173, 201, 248, 0.5);
+      background: rgba(8, 18, 38, 0.72);
+      color: #e7f0ff;
+      font-size: 11px;
+      font-weight: 800;
+      line-height: 1;
+      box-shadow: 0 3px 10px rgba(5, 11, 23, 0.28);
+      backdrop-filter: blur(1px);
+      white-space: nowrap;
+    }
+
+    .roleLegendTop {
+      margin-left: auto;
+      flex: 0 0 auto;
+    }
+
+    .roleLegendTitle {
+      font-size: 10px;
+      color: #c7dafd;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-right: 2px;
+    }
+
+    .roleLegendItem {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      padding: 2px 5px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(10, 20, 40, 0.48);
+      color: #edf4ff;
+      font-size: 10px;
+      font-weight: 800;
+      position: relative;
+      cursor: help;
+      outline: none;
+    }
+
+    .roleLegendItem::after {
+      content: attr(data-desc);
+      position: absolute;
+      bottom: calc(100% + 8px);
+      right: 0;
+      min-width: 170px;
+      max-width: 220px;
+      padding: 6px 8px;
+      border-radius: 8px;
+      border: 1px solid rgba(184, 208, 245, 0.62);
+      background: rgba(8, 18, 36, 0.95);
+      color: #edf4ff;
+      font-size: 10px;
+      font-weight: 700;
+      line-height: 1.25;
+      white-space: normal;
+      box-shadow: 0 8px 18px rgba(4, 10, 20, 0.38);
+      opacity: 0;
+      transform: translateY(2px);
+      pointer-events: none;
+      transition: opacity 110ms ease, transform 110ms ease;
+      z-index: 50;
+    }
+
+    .roleLegendItem::before {
+      content: "";
+      position: absolute;
+      bottom: calc(100% + 3px);
+      right: 10px;
+      width: 8px;
+      height: 8px;
+      background: rgba(8, 18, 36, 0.95);
+      border-right: 1px solid rgba(184, 208, 245, 0.62);
+      border-bottom: 1px solid rgba(184, 208, 245, 0.62);
+      transform: rotate(45deg);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 110ms ease, transform 110ms ease;
+      z-index: 51;
+    }
+
+    .roleLegendItem:hover::after,
+    .roleLegendItem:hover::before,
+    .roleLegendItem:focus-visible::after,
+    .roleLegendItem:focus-visible::before {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .roleLegendGlyph {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 14px;
+      height: 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.28);
+      background: rgba(15, 24, 40, 0.58);
+    }
+
+    .roleLegendGlyph svg {
+      width: 10px;
+      height: 10px;
+      stroke: #f7fbff;
+      fill: none;
+      stroke-width: 1.6;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .roleLegendGlyph.kind-boss svg {
+      fill: #f7fbff;
+      stroke: none;
+    }
+    .roleLegendGlyph.kind-scout svg circle {
+      fill: #f7fbff;
+      stroke: none;
+    }
+
+    .roleScout .roleLegendGlyph { background: #6dbb58; }
+    .roleRunner .roleLegendGlyph { background: #3c8fe6; }
+    .roleJammer .roleLegendGlyph { background: #7d78eb; }
+    .roleBlocker .roleLegendGlyph { background: #607484; }
+    .roleBoss .roleLegendGlyph { background: #d39a31; }
+
+    @media (max-width: 760px) {
+      .topRow {
+        flex-wrap: wrap;
+      }
+      .roleLegendTop {
+        width: 100%;
+        justify-content: flex-end;
+      }
+      .roleLegend {
+        gap: 4px;
+        padding: 4px 6px;
+        font-size: 10px;
+      }
+      .roleLegendTitle {
+        display: none;
+      }
+      .roleLegendItem {
+        padding: 1px 4px;
+        font-size: 9px;
+      }
+      .roleLegendGlyph {
+        width: 12px;
+        height: 12px;
+      }
+      .roleLegendGlyph svg {
+        width: 9px;
+        height: 9px;
+      }
     }
 
     .gameTopOverlay #waveCallout {

@@ -44,10 +44,46 @@
   </div>
   <div class="shell">
     <div class="top">
-      <div class="controls controlsMain">
-        <button id="nextLevelBtn" type="button">Next Level</button>
-        <button id="resetBtn" type="button" title="Restart this level" aria-label="Restart this level">&#x21bb; Restart Level</button>
-        <button id="hudMuteBtn" type="button" title="Quick mute audio" aria-label="Quick mute audio">Mute</button>
+      <div class="topRow">
+        <div class="controls controlsMain">
+          <button id="nextLevelBtn" type="button">Next Level</button>
+          <button id="resetBtn" type="button" title="Restart this level" aria-label="Restart this level">&#x21bb; Restart Level</button>
+          <button id="hudMuteBtn" type="button" title="Quick mute audio" aria-label="Quick mute audio">Mute</button>
+          <button id="undoPlaceBtn" type="button" title="Undo the most recent tower placement" aria-label="Undo the most recent tower placement" hidden>Undo Place</button>
+        </div>
+        <div id="roleLegend" class="roleLegend roleLegendTop" aria-label="Enemy types">
+          <span class="roleLegendTitle">Enemy Types</span>
+          <span class="roleLegendItem roleScout" tabindex="0" data-desc="Scout: fast, light pressure bug with low health.">
+            <span class="roleLegendGlyph kind-scout" aria-hidden="true">
+              <svg viewBox="0 0 16 16"><path d="M2.3 8c1.4-2.3 3.3-3.4 5.7-3.4S12.3 5.7 13.7 8c-1.4 2.3-3.3 3.4-5.7 3.4S3.7 10.3 2.3 8z"/><circle cx="8" cy="8" r="1.5"/></svg>
+            </span>
+            Scout
+          </span>
+          <span class="roleLegendItem roleRunner" tabindex="0" data-desc="Runner: fastest attacker, fragile but slips through if ignored.">
+            <span class="roleLegendGlyph kind-runner" aria-hidden="true">
+              <svg viewBox="0 0 16 16"><path d="M2.2 4.8H11.8M4.2 8H13.8M2.2 11.2H10.8"/></svg>
+            </span>
+            Runner
+          </span>
+          <span class="roleLegendItem roleJammer" tabindex="0" data-desc="Jammer: emits interference that slows nearby tower fire rate.">
+            <span class="roleLegendGlyph kind-jammer" aria-hidden="true">
+              <svg viewBox="0 0 16 16"><circle cx="7.3" cy="8" r="1.1"/><path d="M9 6a2.3 2.3 0 0 1 0 4M10.8 4.8a3.8 3.8 0 0 1 0 6.4"/></svg>
+            </span>
+            Jammer
+          </span>
+          <span class="roleLegendItem roleBlocker" tabindex="0" data-desc="Blocker: slow, durable attacker that soaks tower damage.">
+            <span class="roleLegendGlyph kind-blocker" aria-hidden="true">
+              <svg viewBox="0 0 16 16"><path d="M8 2.6l3.2 1.7v3.7c0 1.9-1.3 3.6-3.2 4.7-1.9-1.1-3.2-2.8-3.2-4.7V4.3L8 2.6z"/></svg>
+            </span>
+            Blocker
+          </span>
+          <span class="roleLegendItem roleBoss" tabindex="0" data-desc="Boss: high-health gate crasher with strong defenses.">
+            <span class="roleLegendGlyph kind-boss" aria-hidden="true">
+              <svg viewBox="0 0 16 16"><path d="M2.4 11.6V6.6l2.2 1.3L8 4.3l3.4 3.6 2.2-1.3v5H2.4z"/></svg>
+            </span>
+            Boss
+          </span>
+        </div>
       </div>
     </div>
 
@@ -169,6 +205,10 @@
             <label class="settingToggle" for="tutorialAutoToggle">
               <input id="tutorialAutoToggle" type="checkbox" />
               <span>Show Tutorial on Start</span>
+            </label>
+            <label class="settingToggle" for="holdPlaceToggle">
+              <input id="holdPlaceToggle" type="checkbox" />
+              <span>Mobile Hold to Place</span>
             </label>
             <label class="settingToggle" for="audioEnabledToggle">
               <input id="audioEnabledToggle" type="checkbox" />
