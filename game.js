@@ -272,6 +272,7 @@
     const towerArtVersion = "20260222e";
     const towerArtSources = rendering.getTowerArtSources(towerArtVersion);
     const towerArtState = towerAssets.createTowerArtState(["spray", "glue", "hose", "salt"]);
+    const towerArtLoadState = { pending: false, summary: null };
 
     const difficultyProfiles = gameConfigs.difficultyProfiles;
 
@@ -390,29 +391,40 @@
     function ensureAudioContext() {
       if (!window.AudioContext && !window.webkitAudioContext) return false;
       if (!audioCtx) {
-        const Ctx = window.AudioContext || window.webkitAudioContext;
-        audioCtx = new Ctx();
-        audioMasterGain = audioCtx.createGain();
-        audioSfxGain = audioCtx.createGain();
-        audioMusicGain = audioCtx.createGain();
-        audioCompressor = audioCtx.createDynamicsCompressor();
-        audioCompressor.threshold.value = -22;
-        audioCompressor.knee.value = 22;
-        audioCompressor.ratio.value = 3;
-        audioCompressor.attack.value = 0.01;
-        audioCompressor.release.value = 0.2;
-        audioSfxGain.connect(audioMasterGain);
-        audioMusicGain.connect(audioMasterGain);
-        audioMasterGain.connect(audioCompressor);
-        audioCompressor.connect(audioCtx.destination);
-        audioMusicStep = 0;
-        audioMusicBeatMs = 950;
-        audioMusicThemeKey = "";
-        lastDefeatSfxAt = 0;
-        lastBossHitSfxAt = 0;
-        lastShotSfxAt = { spray: 0, glue: 0, hose: 0, salt: 0 };
-        buildNoiseBuffer();
-        updateAudioGains();
+        try {
+          const Ctx = window.AudioContext || window.webkitAudioContext;
+          audioCtx = new Ctx();
+          audioMasterGain = audioCtx.createGain();
+          audioSfxGain = audioCtx.createGain();
+          audioMusicGain = audioCtx.createGain();
+          audioCompressor = audioCtx.createDynamicsCompressor();
+          audioCompressor.threshold.value = -22;
+          audioCompressor.knee.value = 22;
+          audioCompressor.ratio.value = 3;
+          audioCompressor.attack.value = 0.01;
+          audioCompressor.release.value = 0.2;
+          audioSfxGain.connect(audioMasterGain);
+          audioMusicGain.connect(audioMasterGain);
+          audioMasterGain.connect(audioCompressor);
+          audioCompressor.connect(audioCtx.destination);
+          audioMusicStep = 0;
+          audioMusicBeatMs = 950;
+          audioMusicThemeKey = "";
+          lastDefeatSfxAt = 0;
+          lastBossHitSfxAt = 0;
+          lastShotSfxAt = { spray: 0, glue: 0, hose: 0, salt: 0 };
+          buildNoiseBuffer();
+          updateAudioGains();
+        } catch (err) {
+          audioCtx = null;
+          audioMasterGain = null;
+          audioSfxGain = null;
+          audioMusicGain = null;
+          audioCompressor = null;
+          const msg = err && err.message ? err.message : "unknown";
+          console.warn(`[audio] Audio context unavailable: ${msg}`);
+          return false;
+        }
       }
       if (audioCtx.state === "suspended") {
         audioCtx.resume().catch(() => {});
@@ -1578,8 +1590,16 @@
           && !!hoseTowerBtn?.querySelector(".hoseIcon canvas")
           && !!saltTowerBtn?.querySelector(".saltPreview canvas");
         record("Tower selector icons rendered", selectorIconsRendered, selectorIconsRendered ? "" : "Missing one or more selector icon canvases");
+        const artLoadSettled = !towerArtLoadState.pending;
+        record("Tower art load settled", artLoadSettled, artLoadSettled ? "" : "Tower art loading still pending");
         const towerAssetReady = Object.values(towerArtState.images || {}).some(Boolean);
-        record("Tower art assets available", towerAssetReady, towerAssetReady ? "" : "No tower art image loaded");
+        const artSummary = towerArtLoadState.summary || towerArtState.lastLoadSummary || null;
+        const fallbackMode = !!(artSummary && artSummary.total > 0 && artSummary.loaded === 0 && artSummary.failed === artSummary.total);
+        const towerArtUsable = towerAssetReady || fallbackMode;
+        const detail = towerAssetReady
+          ? "Loaded tower art assets."
+          : (fallbackMode ? "Using procedural fallback art." : "No tower art image loaded");
+        record("Tower art assets available", towerArtUsable, detail);
 
         setSelectedTowerType("spray");
         await delayMs(20);
@@ -4306,12 +4326,35 @@
     }
 
     function loadTowerArtAssets() {
-      towerAssets.loadTowerArtAssets({
+      towerArtLoadState.pending = true;
+      return towerAssets.loadTowerArtAssets({
         sources: towerArtSources,
         state: towerArtState,
         onAssetReady: () => {
           renderTowerSelectorIcons();
+        },
+        timeoutMs: 4200
+      }).then((summary) => {
+        towerArtLoadState.pending = false;
+        towerArtLoadState.summary = summary || null;
+        window.__towerArtLoadSummary = towerArtLoadState.summary;
+        if (summary && summary.failed > 0) {
+          console.warn("[assets] Tower art fallback in use for some files.", summary);
         }
+        renderTowerSelectorIcons();
+        return summary;
+      }).catch((err) => {
+        towerArtLoadState.pending = false;
+        towerArtLoadState.summary = {
+          total: Object.keys(towerArtSources || {}).length,
+          loaded: 0,
+          failed: Object.keys(towerArtSources || {}).length,
+          failures: [{ key: "all", reason: err && err.message ? err.message : "load-error", src: "" }]
+        };
+        window.__towerArtLoadSummary = towerArtLoadState.summary;
+        console.warn("[assets] Tower art loading failed; procedural fallback active.", towerArtLoadState.summary);
+        renderTowerSelectorIcons();
+        return towerArtLoadState.summary;
       });
     }
 
