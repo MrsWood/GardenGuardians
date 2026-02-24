@@ -3,6 +3,17 @@
   const existing = (typeof window !== "undefined" && window.GG_CONFIGS) ? window.GG_CONFIGS : {};
 
     const allowDirectLevelSelect = false;
+    const defaultThemeId = "garden_guard";
+    const themePacks = {
+      garden_guard: {
+        id: "garden_guard",
+        name: "Garden Guard",
+        description: "Baseline campaign theme with garden, prairie, desert, winter, and topiary levels.",
+        levelOrder: [1, 2, 3, 4, 5, 6],
+        availableTerrains: ["lawn", "prairie", "desert", "snow"],
+        availableFlowerThemes: ["mixed", "susan", "cactus", "sunflower", "christmas", "topiary"]
+      }
+    };
     const levelConfigs = {
       1: {
         name: "Garden Lawn",
@@ -390,16 +401,6 @@
       hose: { name: "Hosepipe", desc: "High-pressure water beam that pierces through bugs in its path." },
       salt: { name: "Salt Cannon", desc: "Focused salt shots for strong single-target damage." }
     };
-    const towerArtVersion = "20260222e";
-    const towerArtSources = {
-      spray: `./assets/bug_sprayer_game_clean.png?v=${towerArtVersion}`,
-      glue: `./assets/glue_trap_game_clean.png?v=${towerArtVersion}`,
-      hose: `./assets/water_hose_game_clean.png?v=${towerArtVersion}`,
-      salt: `./assets/cannon_game_clean.png?v=${towerArtVersion}`
-    };
-    const towerArtImages = { spray: null, glue: null, hose: null, salt: null };
-    const towerArtProcessed = { spray: null, glue: null, hose: null, salt: null };
-
     const difficultyProfiles = {
       easy: {
         label: "Easy",
@@ -467,6 +468,8 @@
   window.GG_CONFIGS = {
     ...existing,
     allowDirectLevelSelect,
+    defaultThemeId,
+    themePacks,
     levelConfigs,
     enemyTypes,
     waveBalance,

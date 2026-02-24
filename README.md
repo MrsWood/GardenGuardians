@@ -18,9 +18,39 @@ Run a quick automated sanity check by opening:
 
 - `index.html?smoke=1`
 
-The game runs a lightweight smoke pass (load, start, place tower, start wave, enemy spawn, runtime stability) and writes results to:
+The game runs a lightweight smoke pass (load, start, place, upgrade, sell, snapshot roundtrip, wave spawn, runtime stability) and writes results to:
 
 - `window.__gardenSmokeResult`
+
+## Deterministic Debug Runs
+
+Use a seed to make gameplay-critical randomization deterministic for debugging:
+
+- `index.html?seed=mytest`
+- `index.html?smoke=1&seed=mytest`
+
+Seeded randomness currently covers:
+
+- wave lane selection
+- weighted enemy type selection
+- bunny cooldown and bunny spawn point selection
+
+## Runtime Diagnostics
+
+Runtime errors are captured in:
+
+- `window.__gardenRuntimeErrors`
+
+The log is capped to the latest 30 entries and includes `window.error`, `unhandledrejection`, and guarded game loop crashes.
+
+## Theme Scaffolding
+
+Theme metadata is centralized in `game.config.js`:
+
+- `defaultThemeId`
+- `themePacks`
+
+This allows cloning the current game into a new themed variant without rewriting core simulation code.
 
 ## Publish with GitHub Pages (Recommended)
 

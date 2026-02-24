@@ -6,7 +6,7 @@
     const enemyRadius = 11;
     const noBuildPadding = 10;
     const gameConfigs = window.GG_CONFIGS || null;
-    if (!gameConfigs || !gameConfigs.levelConfigs || !Array.isArray(gameConfigs.enemyTypes) || !gameConfigs.waveBalance || !gameConfigs.towerCosts || !gameConfigs.towerDetails || !gameConfigs.difficultyProfiles || !gameConfigs.enemyRoleStats) {
+    if (!gameConfigs || !gameConfigs.levelConfigs || !Array.isArray(gameConfigs.enemyTypes) || !gameConfigs.waveBalance || !gameConfigs.towerCosts || !gameConfigs.towerDetails || !gameConfigs.difficultyProfiles || !gameConfigs.enemyRoleStats || !gameConfigs.themePacks || !gameConfigs.defaultThemeId) {
       throw new Error("Missing GG_CONFIGS. Ensure game.config.js is loaded before game.js.");
     }
     const simulation = window.GG_SIM || null;
@@ -80,6 +80,8 @@
     }
     const allowDirectLevelSelect = !!gameConfigs.allowDirectLevelSelect;
     const levelConfigs = gameConfigs.levelConfigs;
+    const defaultThemeId = gameConfigs.defaultThemeId || "";
+    const activeThemePack = (gameConfigs.themePacks && defaultThemeId && gameConfigs.themePacks[defaultThemeId]) ? gameConfigs.themePacks[defaultThemeId] : null;
 
     const lanes = {};
     const lawnTexture = document.createElement("canvas");
@@ -173,6 +175,7 @@
     const isCoarsePointer = (window.matchMedia && window.matchMedia("(pointer: coarse)").matches) || (navigator.maxTouchPoints || 0) > 0;
     const pageParams = new URLSearchParams(window.location.search || "");
     const smokeMode = pageParams.get("smoke") === "1";
+    const gameplaySeedParam = (pageParams.get("seed") || "").trim();
 
     let money;
     let bank;
@@ -287,6 +290,81 @@
     const difficultyProfiles = gameConfigs.difficultyProfiles;
 
     const enemyRoleStats = gameConfigs.enemyRoleStats;
+    const runtimeErrorLimit = 30;
+    const runtimeErrorLog = Array.isArray(window.__gardenRuntimeErrors) ? window.__gardenRuntimeErrors : [];
+    window.__gardenRuntimeErrors = runtimeErrorLog;
+    const seededGameplayRandom = createSeededRandom(gameplaySeedParam);
+
+    function hashSeedToUint32(seed) {
+      const text = String(seed || "garden-guard");
+      let h = 2166136261 >>> 0;
+      for (let i = 0; i < text.length; i += 1) {
+        h ^= text.charCodeAt(i);
+        h = Math.imul(h, 16777619);
+      }
+      return h >>> 0;
+    }
+
+    function createSeededRandom(seedText) {
+      const normalized = String(seedText || "").trim();
+      if (!normalized) return null;
+      let state = hashSeedToUint32(normalized);
+      if (state === 0) state = 0x6d2b79f5;
+      return {
+        seed: normalized,
+        next() {
+          state = (state + 0x6D2B79F5) >>> 0;
+          let t = Math.imul(state ^ (state >>> 15), 1 | state);
+          t ^= t + Math.imul(t ^ (t >>> 7), 61 | t);
+          return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        }
+      };
+    }
+
+    function randomGameplay() {
+      return seededGameplayRandom ? seededGameplayRandom.next() : Math.random();
+    }
+
+    function pushRuntimeError(kind, message, extra = null) {
+      runtimeErrorLog.push({
+        kind: String(kind || "error"),
+        message: String(message || "Unknown runtime error"),
+        time: Date.now(),
+        extra
+      });
+      if (runtimeErrorLog.length > runtimeErrorLimit) {
+        runtimeErrorLog.splice(0, runtimeErrorLog.length - runtimeErrorLimit);
+      }
+    }
+
+    function installRuntimeErrorHooks() {
+      if (window.__gardenRuntimeHooksInstalled) return;
+      window.__gardenRuntimeHooksInstalled = true;
+      window.addEventListener("error", (event) => {
+        pushRuntimeError(
+          "window.error",
+          event?.message || "Unhandled window error",
+          {
+            file: event?.filename || "",
+            line: Number(event?.lineno) || 0,
+            col: Number(event?.colno) || 0,
+            stack: event?.error?.stack || ""
+          }
+        );
+      });
+      window.addEventListener("unhandledrejection", (event) => {
+        const reason = event?.reason;
+        const message = typeof reason === "string"
+          ? reason
+          : (reason?.message || "Unhandled promise rejection");
+        pushRuntimeError("unhandledrejection", message, {
+          stack: reason?.stack || "",
+          rawType: typeof reason
+        });
+      });
+    }
+
+    installRuntimeErrorHooks();
 
     function loadHighscores() {
       highscores = persistence.loadHighscores(highscoreStorageKey);
@@ -1063,7 +1141,7 @@
     function getBunnyCooldown(profile = getDifficultyProfile()) {
       const base = Math.max(120, Math.round(profile.bunnyCooldownBase || 360));
       const jitter = Math.max(0, Math.round(profile.bunnyCooldownJitter || 240));
-      return base + Math.floor(Math.random() * (jitter + 1));
+      return base + Math.floor(randomGameplay() * (jitter + 1));
     }
 
     function getWaveEnemyWeights(cfg, waveNumber) {
@@ -1098,11 +1176,11 @@
 
     function pickEnemyTypeForLevel(cfg, waveNumber) {
       const weights = getWaveEnemyWeights(cfg, waveNumber);
-      if (!weights) return enemyTypes[Math.floor(Math.random() * enemyTypes.length)];
+      if (!weights) return enemyTypes[Math.floor(randomGameplay() * enemyTypes.length)];
       let total = 0;
       for (const type of enemyTypes) total += Math.max(0, Number(weights[type] || 0));
-      if (total <= 0) return enemyTypes[Math.floor(Math.random() * enemyTypes.length)];
-      let roll = Math.random() * total;
+      if (total <= 0) return enemyTypes[Math.floor(randomGameplay() * enemyTypes.length)];
+      let roll = randomGameplay() * total;
       for (const type of enemyTypes) {
         roll -= Math.max(0, Number(weights[type] || 0));
         if (roll <= 0) return type;
@@ -1583,7 +1661,12 @@
             money,
             enemies: enemies.length,
             activeSpawners,
-            runtimeCrashed: !!runtimeCrashed
+            runtimeCrashed: !!runtimeCrashed,
+            runtimeErrorCount: runtimeErrorLog.length
+          },
+          diagnostics: {
+            themePack: activeThemePack?.id || defaultThemeId || "unknown",
+            gameplaySeed: seededGameplayRandom?.seed || null
           }
         };
         window.__gardenSmokeResult = result;
@@ -1600,6 +1683,9 @@
       try {
         record("DOM canvas exists", !!canvas, !!canvas ? "" : "Missing #game canvas");
         record("Core controls exist", !!landingStartBtn && !!startBtn && !!sprayTowerBtn, "Missing one or more required controls");
+        record("Gameplay seed parsed", gameplaySeedParam ? !!seededGameplayRandom : true, seededGameplayRandom ? seededGameplayRandom.seed : (gameplaySeedParam ? "invalid seed" : "not set"));
+        record("Theme pack resolved", !!activeThemePack, activeThemePack ? activeThemePack.name : "No active theme pack");
+        record("Runtime error log available", Array.isArray(runtimeErrorLog), `entries=${runtimeErrorLog.length}`);
         const towerAssetModuleLoaded = !!window.GG_TOWER_ASSETS;
         record("Tower asset module loaded", towerAssetModuleLoaded, towerAssetModuleLoaded ? "" : "window.GG_TOWER_ASSETS missing");
 
@@ -1632,6 +1718,45 @@
         if (grassPoint) placed = placeTower(grassPoint.x, grassPoint.y);
         record("Place tower", placed, placed ? "" : "placeTower returned false");
         record("Money decreases after placement", placed ? money < beforeMoney : false, `before=${beforeMoney}, after=${money}`);
+        const placedTower = placed && selectedTowerId ? towers.find(t => t.id === selectedTowerId) : null;
+        record("Tower selected after placement", !!placedTower, placedTower ? `${placedTower.type}#${placedTower.id}` : "No selected placed tower");
+
+        let upgraded = false;
+        let upgradedTower = null;
+        if (placedTower) {
+          const levelBeforeUpgrade = placedTower.level;
+          upgraded = upgradeTower(placedTower);
+          upgradedTower = towers.find(t => t.id === placedTower.id) || null;
+          const upgradeLevelOk = !!upgradedTower && upgradedTower.level === levelBeforeUpgrade + 1;
+          record("Upgrade tower", upgraded && upgradeLevelOk, upgraded ? `L${levelBeforeUpgrade}->L${upgradedTower?.level || "?"}` : "upgradeTower returned false");
+        } else {
+          record("Upgrade tower", false, "No tower available to upgrade");
+        }
+
+        let sellFlowOk = false;
+        if (upgradedTower) {
+          const countBeforeSell = towers.length;
+          const firstTapResult = requestSellTowerConfirm(upgradedTower.id);
+          const armed = firstTapResult === false && towerSellConfirmTowerId === upgradedTower.id;
+          const secondTapResult = requestSellTowerConfirm(upgradedTower.id);
+          const sold = secondTapResult === true && towers.length === countBeforeSell - 1;
+          sellFlowOk = armed && sold;
+          record("Sell tower double-confirm flow", sellFlowOk, `armed=${armed}, sold=${sold}`);
+        } else {
+          record("Sell tower double-confirm flow", false, "No upgraded tower available to sell");
+        }
+
+        const smokeSnapshot = buildRunSnapshot();
+        const smokeSnapshotSanitized = sanitizeRunSnapshot(smokeSnapshot);
+        record("Snapshot sanitize passes", !!smokeSnapshotSanitized, smokeSnapshotSanitized ? "snapshot accepted" : "snapshot rejected");
+        const smokeRunKey = `${runStorageKey}_smoke_tmp`;
+        const smokeRunBackupKey = `${runBackupStorageKey}_smoke_tmp`;
+        persistence.clearRunSnapshot(smokeRunKey, smokeRunBackupKey);
+        const smokeWriteOk = persistence.writeRunSnapshot(smokeRunKey, smokeRunBackupKey, smokeSnapshot);
+        const smokeReadResult = persistence.readRunSnapshot(smokeRunKey, smokeRunBackupKey, sanitizeRunSnapshot);
+        const smokeReadOk = !!smokeReadResult?.snapshot && smokeReadResult.snapshot.levelNumber === smokeSnapshot.levelNumber;
+        record("Snapshot write/read roundtrip", smokeWriteOk && smokeReadOk, `write=${smokeWriteOk}, read=${!!smokeReadResult?.snapshot}`);
+        persistence.clearRunSnapshot(smokeRunKey, smokeRunBackupKey);
 
         const waveBefore = wave;
         startWave();
@@ -1659,6 +1784,7 @@
         report(ok);
       } catch (err) {
         const message = err && err.message ? err.message : "Unknown smoke harness error";
+        pushRuntimeError("smokeHarness", message, { stack: err?.stack || "" });
         record("Unhandled smoke harness exception", false, message);
         report(false, message);
       } finally {
@@ -2769,8 +2895,8 @@
 
     function getRandomGrassPoint() {
       for (let i = 0; i < 28; i += 1) {
-        const x = 24 + Math.random() * (canvas.width - 230);
-        const y = 20 + Math.random() * (canvas.height - 40);
+        const x = 24 + randomGameplay() * (canvas.width - 230);
+        const y = 20 + randomGameplay() * (canvas.height - 40);
         if (intersectsRoad(x, y)) continue;
         return { x, y };
       }
@@ -3051,7 +3177,7 @@
       const reward = wavePlan.reward;
       const spawnDelay = wavePlan.spawnDelay;
       const laneIds = (lvl.laneDefinitions || []).map(def => def.id).filter(Boolean);
-      const waveLaneId = laneIds.length > 0 ? laneIds[Math.floor(Math.random() * laneIds.length)] : "top";
+      const waveLaneId = laneIds.length > 0 ? laneIds[Math.floor(randomGameplay() * laneIds.length)] : "top";
       const waveLaneLabel = `${waveLaneId} path`;
       currentWaveSpawnTotal = total;
       currentWaveLaneLabel = waveLaneLabel;
@@ -5101,6 +5227,9 @@
           }
           autoWaveDueAt = 0;
           activeSpawners = 0;
+          pushRuntimeError("gameLoop", err?.message || "Game loop crash", {
+            stack: err?.stack || ""
+          });
           setStatus("A runtime error occurred and the game was paused safely. Press Restart Level.", "danger");
           try {
             console.error("Game loop crash:", err);
