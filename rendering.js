@@ -430,10 +430,11 @@
   }
 
   function getEnemyStyle(type) {
-    if (type === "aphid") return { hp: "#7edb67", icon: "#55b942" };
-    if (type === "mantis") return { hp: "#9dfc8a", icon: "#71cf5d" };
-    if (type === "locust") return { hp: "#d8b181", icon: "#bf915e" };
-    if (type === "ladybug") return { hp: "#ff8f8f", icon: "#de5656" };
+    if (type === "aphid") return { hp: "#77ce57", icon: "#59af3d" };
+    if (type === "mantis") return { hp: "#d2e65f", icon: "#b6cc3e" };
+    if (type === "locust") return { hp: "#b8c0ca", icon: "#8d96a1" };
+    if (type === "caterpillar") return { hp: "#a98ae3", icon: "#7e60b8" };
+    if (type === "ladybug") return { hp: "#ef6666", icon: "#c94646" };
     if (type === "gatecrasher") return { hp: "#ffb170", icon: "#d8702f" };
     return { hp: "#a6e08b", icon: "#6dbb58" };
   }
@@ -450,11 +451,16 @@
 
   function getPrimaryRoleChip(enemy) {
     if (enemy.enemyType === "gatecrasher" || enemy.role === "Boss") return { t: "boss", c: "#d39a31" };
-    if (enemy.role === "Scout") return { t: "scout", c: "#6dbb58" };
-    if (enemy.role === "Runner") return { t: "runner", c: "#3c8fe6" };
-    if (enemy.role === "Jammer") return { t: "jammer", c: "#7d78eb" };
-    if (enemy.role === "Blocker") return { t: "blocker", c: "#607484" };
-    if (enemy.role === "Tank") return { t: "tank", c: "#de5656" };
+    if (enemy.enemyType === "aphid") return { t: "scout", c: "#59af3d" };
+    if (enemy.enemyType === "locust") return { t: "runner", c: "#8d96a1" };
+    if (enemy.enemyType === "mantis") return { t: "jammer", c: "#b6cc3e" };
+    if (enemy.enemyType === "caterpillar") return { t: "blocker", c: "#7e60b8" };
+    if (enemy.enemyType === "ladybug") return { t: "tank", c: "#c94646" };
+    if (enemy.role === "Scout") return { t: "scout", c: "#59af3d" };
+    if (enemy.role === "Runner") return { t: "runner", c: "#8d96a1" };
+    if (enemy.role === "Jammer") return { t: "jammer", c: "#b6cc3e" };
+    if (enemy.role === "Blocker") return { t: "blocker", c: "#7e60b8" };
+    if (enemy.role === "Tank") return { t: "tank", c: "#c94646" };
     return null;
   }
 
@@ -614,7 +620,7 @@
       const pulse = Math.sin((frameCount + enemy.id * 7) * 0.14) * 0.5 + 0.5;
       const auraR = 11 + pulse * 3;
       const auraA = 0.12 + pulse * 0.1;
-      drawCtx.strokeStyle = `rgba(125, 120, 235, ${auraA})`;
+      drawCtx.strokeStyle = `rgba(196, 220, 86, ${auraA})`;
       drawCtx.lineWidth = 1.6;
       drawCtx.beginPath();
       drawCtx.arc(enemy.x, enemy.y, auraR, 0, Math.PI * 2);
@@ -631,22 +637,8 @@
     drawCtx.lineWidth = 0.7;
     drawCtx.strokeRect(overlay.barX, overlay.barY, overlay.barWidth, 4.2);
 
-    const resolvedRoleChip = roleChip || getPrimaryRoleChip(enemy);
-    if (resolvedRoleChip) {
-      drawEnemyStatusChip(drawCtx, overlay.roleX, overlay.roleY, resolvedRoleChip.t, resolvedRoleChip.c, "rgba(15, 18, 24, 0.96)", 6.5);
-      drawCtx.strokeStyle = "rgba(255, 255, 255, 0.5)";
-      drawCtx.lineWidth = 1;
-      drawCtx.beginPath();
-      drawCtx.arc(overlay.roleX, overlay.roleY, 7.9, 0, Math.PI * 2);
-      drawCtx.stroke();
-    }
-
-    if ((enemy.slowStatusTimer || 0) > 0) {
-      drawEnemyStatusChip(drawCtx, overlay.slowX, overlay.slowY, "slow", "#76d8f7", "rgba(12, 21, 34, 0.92)", 5.8);
-    }
-    if ((enemy.jamStatusTimer || 0) > 0) {
-      drawEnemyStatusChip(drawCtx, overlay.jamX, overlay.jamY, "jam", "#8f83ee", "rgba(15, 18, 24, 0.92)", 5.8);
-    }
+    // Intentionally keep enemy UI minimal: health bar only.
+    // Type is now communicated by enemy body art + the top legend.
   }
 
   global.GG_RENDER = {

@@ -4764,9 +4764,9 @@
       const x = e.x;
       const y = e.y + Math.sin((frameCount + e.id * 5) * 0.12) * 0.7;
       drawEnemyShadow(x, y, 13, 4.8);
-      ctx.strokeStyle = "#3e7a33";
+      ctx.strokeStyle = "#7e8e2a";
       ctx.lineWidth = 1.7;
-      ctx.fillStyle = "#88d65f";
+      ctx.fillStyle = "#c5da4d";
       ctx.beginPath();
       ctx.ellipse(x - 2.5, y + 1.4, 8.7, 5.6, 0.08, 0, Math.PI * 2);
       ctx.fill();
@@ -4797,14 +4797,14 @@
       const x = e.x;
       const y = e.y + Math.sin((frameCount + e.id * 9) * 0.11) * 0.55;
       drawEnemyShadow(x, y, 13.5, 4.8);
-      ctx.strokeStyle = "#6a4d2c";
+      ctx.strokeStyle = "#59626e";
       ctx.lineWidth = 1.6;
-      ctx.fillStyle = "#b68a56";
+      ctx.fillStyle = "#9da6b2";
       ctx.beginPath();
       ctx.ellipse(x - 1.2, y, 10.8, 5.8, 0.08, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
-      ctx.fillStyle = "rgba(215, 189, 147, 0.82)";
+      ctx.fillStyle = "rgba(196, 203, 214, 0.82)";
       ctx.beginPath();
       ctx.ellipse(x + 0.8, y - 1.3, 8.5, 4.1, -0.18, 0, Math.PI * 2);
       ctx.fill();
@@ -4860,13 +4860,13 @@
       const y = e.y + Math.sin((frameCount + e.id * 6) * 0.1) * 0.55;
       drawEnemyShadow(x, y, 14, 4.8);
       const segments = [
-        { ox: -9.2, r: 3.4, c: "#75bf59" },
-        { ox: -5.2, r: 4, c: "#6ab152" },
-        { ox: -1.2, r: 4.4, c: "#75bf59" },
-        { ox: 2.8, r: 4.2, c: "#6ab152" },
-        { ox: 6.8, r: 4, c: "#75bf59" }
+        { ox: -9.2, r: 3.4, c: "#9f7fdc" },
+        { ox: -5.2, r: 4, c: "#8b69ca" },
+        { ox: -1.2, r: 4.4, c: "#9f7fdc" },
+        { ox: 2.8, r: 4.2, c: "#8b69ca" },
+        { ox: 6.8, r: 4, c: "#9f7fdc" }
       ];
-      ctx.strokeStyle = "#2e5b25";
+      ctx.strokeStyle = "#5e468f";
       ctx.lineWidth = 1.2;
       for (const s of segments) {
         ctx.fillStyle = s.c;
@@ -4875,7 +4875,7 @@
         ctx.fill();
         ctx.stroke();
       }
-      ctx.fillStyle = "#4d9340";
+      ctx.fillStyle = "#7757b0";
       ctx.beginPath();
       ctx.arc(x + 10.4, y - 0.2, 4, 0, Math.PI * 2);
       ctx.fill();
@@ -4950,8 +4950,7 @@
 
         const style = rendering.getEnemyStyle(e.enemyType);
         const overlay = rendering.getEnemyOverlayLayout(e);
-        const roleChip = rendering.getPrimaryRoleChip(e);
-        rendering.drawEnemyOverlay(ctx, e, overlay, style, frameCount, roleChip);
+        rendering.drawEnemyOverlay(ctx, e, overlay, style, frameCount, null);
       }
     }
 

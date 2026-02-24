@@ -2165,11 +2165,13 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 14px;
+      width: 18px;
       height: 14px;
-      border-radius: 999px;
-      border: 1px solid rgba(255, 255, 255, 0.28);
-      background: rgba(15, 24, 40, 0.58);
+      border-radius: 0;
+      border: 0;
+      background: transparent;
+      box-shadow: none;
+      overflow: visible;
     }
 
     .roleLegendGlyph svg {
@@ -2195,14 +2197,316 @@
       stroke: none;
     }
 
-    .roleScout .roleLegendGlyph { background: #6dbb58; }
-    .roleRunner .roleLegendGlyph { background: #3c8fe6; }
-    .roleJammer .roleLegendGlyph { background: #7d78eb; }
-    .roleBlocker .roleLegendGlyph { background: #607484; }
-    .roleTank .roleLegendGlyph { background: #de5656; }
-    .roleBoss .roleLegendGlyph { background: #d39a31; }
+    .roleLegendGlyph .bugMini {
+      display: block;
+      position: relative;
+      width: 11px;
+      height: 10px;
+      border-radius: 0;
+      transform: scale(1.15);
+      transform-origin: 50% 50%;
+    }
+
+    .roleLegendGlyph .bugMini::before,
+    .roleLegendGlyph .bugMini::after {
+      content: "";
+      position: absolute;
+    }
+
+    .roleLegendGlyph .bugAphid {
+      background: radial-gradient(circle at 32% 30%, #b4eb8f 0%, #6fbd4b 70%);
+      border: 1px solid rgba(33, 78, 26, 0.65);
+    }
+    .roleLegendGlyph .bugAphid::before {
+      width: 6px;
+      height: 4px;
+      left: 1px;
+      top: 5px;
+      border-radius: 999px;
+      background: rgba(80, 152, 54, 0.92);
+    }
+    .roleLegendGlyph .bugAphid::after {
+      width: 2px;
+      height: 2px;
+      right: 1px;
+      top: 3px;
+      border-radius: 50%;
+      background: #1f261d;
+      box-shadow: -2px 1px 0 #1f261d;
+    }
+
+    .roleLegendGlyph .bugLocust {
+      width: 11px;
+      height: 8px;
+      margin-top: 1px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #c3c9d1 0%, #87919c 100%);
+      border: 1px solid rgba(62, 70, 81, 0.72);
+      transform: rotate(-8deg);
+    }
+    .roleLegendGlyph .bugLocust::before {
+      width: 5px;
+      height: 1.4px;
+      right: -3px;
+      top: 5px;
+      background: #707985;
+      transform: rotate(38deg);
+      border-radius: 999px;
+    }
+    .roleLegendGlyph .bugLocust::after {
+      width: 5px;
+      height: 1.4px;
+      left: -2px;
+      top: 6px;
+      background: #707985;
+      transform: rotate(-34deg);
+      border-radius: 999px;
+    }
+
+    .roleLegendGlyph .bugMantis {
+      width: 6px;
+      height: 10px;
+      margin-left: 2px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #e6ef88 0%, #a9bc39 100%);
+      border: 1px solid rgba(88, 98, 34, 0.72);
+    }
+    .roleLegendGlyph .bugMantis::before {
+      width: 7px;
+      height: 1.5px;
+      left: -5px;
+      top: 3px;
+      background: #b2c645;
+      transform: rotate(-34deg);
+      border-radius: 999px;
+    }
+    .roleLegendGlyph .bugMantis::after {
+      width: 7px;
+      height: 1.5px;
+      left: 4px;
+      top: 3px;
+      background: #b2c645;
+      transform: rotate(34deg);
+      border-radius: 999px;
+    }
+
+    .roleLegendGlyph .bugCaterpillar {
+      width: 11px;
+      height: 7px;
+      margin-top: 1px;
+      border-radius: 999px;
+      background:
+        radial-gradient(circle at 18% 52%, #9f7fdc 0 34%, transparent 35%),
+        radial-gradient(circle at 39% 52%, #8b69ca 0 34%, transparent 35%),
+        radial-gradient(circle at 61% 52%, #9f7fdc 0 34%, transparent 35%),
+        radial-gradient(circle at 82% 52%, #8b69ca 0 34%, transparent 35%);
+      border: 1px solid rgba(78, 56, 114, 0.7);
+    }
+    .roleLegendGlyph .bugCaterpillar::before {
+      width: 2px;
+      height: 2px;
+      right: 0;
+      top: 2px;
+      border-radius: 50%;
+      background: #1f172c;
+      box-shadow: -1px 2px 0 rgba(31, 23, 44, 0.8);
+    }
+
+    .roleLegendGlyph .bugLadybug {
+      width: 10px;
+      height: 10px;
+      background: radial-gradient(circle at 32% 30%, #ff8d8d 0%, #d84a4a 76%);
+      border: 1px solid rgba(72, 18, 18, 0.76);
+      box-shadow: inset -1px 0 0 rgba(20, 20, 20, 0.85);
+    }
+    .roleLegendGlyph .bugLadybug::before {
+      width: 4px;
+      height: 4px;
+      right: -1px;
+      top: 3px;
+      border-radius: 50%;
+      background: #1f1f1f;
+    }
+    .roleLegendGlyph .bugLadybug::after {
+      width: 1.6px;
+      height: 1.6px;
+      left: 2px;
+      top: 3px;
+      border-radius: 50%;
+      background: #1f1f1f;
+      box-shadow: 3px 1.5px 0 #1f1f1f, 1.5px 3.2px 0 #1f1f1f;
+    }
+
+    .roleLegendGlyph .bugBoss {
+      width: 11px;
+      height: 8px;
+      margin-top: 1px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #c68b4d 0%, #8d5a2f 100%);
+      border: 1px solid rgba(71, 40, 15, 0.76);
+    }
+    .roleLegendGlyph .bugBoss::before {
+      width: 8px;
+      height: 4px;
+      left: 1px;
+      top: -4px;
+      background: #d9a846;
+      clip-path: polygon(0 100%, 0 50%, 18% 66%, 35% 20%, 50% 66%, 65% 20%, 82% 66%, 100% 50%, 100% 100%);
+      border: 1px solid rgba(100, 70, 20, 0.75);
+    }
+
+    .roleScout .roleLegendGlyph,
+    .roleRunner .roleLegendGlyph,
+    .roleJammer .roleLegendGlyph,
+    .roleBlocker .roleLegendGlyph,
+    .roleTank .roleLegendGlyph,
+    .roleBoss .roleLegendGlyph {
+      background: transparent;
+      border: 0;
+      box-shadow: none;
+    }
 
     @media (max-width: 760px) {
+      .gameTopOverlay {
+        top: 5px;
+        left: 6px;
+        right: 6px;
+        gap: 5px;
+      }
+      .overlayStat {
+        min-height: 22px;
+        padding: 2px 6px;
+        border-radius: 7px;
+        gap: 4px;
+        font-size: 10px;
+      }
+      .statWithIcon {
+        min-width: 66px;
+        gap: 4px;
+        padding-right: 6px;
+      }
+      .bankStat {
+        gap: 4px;
+        padding-right: 7px;
+      }
+      .statIcon {
+        width: 14px;
+        height: 13px;
+      }
+      .bankIcon::before {
+        left: 0;
+        top: 5px;
+        width: 13px;
+        height: 7px;
+      }
+      .bankIcon::after {
+        left: 0;
+        top: 0;
+        width: 14px;
+        height: 6px;
+        line-height: 6px;
+        font-size: 4.8px;
+      }
+      .coinStackIcon::before {
+        width: 10px;
+        height: 10px;
+        left: 2px;
+        top: 2px;
+      }
+      .coinStackIcon::after {
+        width: 5px;
+        height: 5px;
+        left: 4px;
+        top: 4px;
+      }
+      .vegIconGroup {
+        width: 16px;
+        height: 12px;
+      }
+      .miniCarrot {
+        width: 5px;
+        height: 8px;
+        top: 3px;
+      }
+      .miniTomato {
+        width: 6px;
+        height: 6px;
+        left: 5px;
+        top: 4px;
+      }
+      .miniLettuce {
+        width: 6px;
+        height: 6px;
+        left: 10px;
+        top: 4px;
+      }
+      .waveTopHeader {
+        gap: 3px;
+      }
+      .waveControl {
+        border-radius: 9px;
+      }
+      .gameTopOverlay #waveBanner {
+        width: 116px;
+        min-width: 116px;
+        max-width: 116px;
+        font-size: 10px;
+        gap: 4px;
+        padding: 3px 6px;
+      }
+      #waveBannerTag {
+        font-size: 8px;
+        padding: 1px 5px;
+      }
+      .flawlessChip {
+        min-width: 76px;
+        max-width: 76px;
+        font-size: 8px;
+        gap: 3px;
+        padding: 3px 5px;
+      }
+      .flawlessDot {
+        width: 6px;
+        height: 6px;
+      }
+      .gameTopOverlay #startBtn {
+        width: 154px;
+        min-width: 154px;
+        max-width: 154px;
+        padding: 3px 6px;
+        column-gap: 5px;
+      }
+      .gameTopOverlay #startBtn #startBtnGlyph {
+        min-width: 24px;
+        height: 18px;
+        font-size: 8px;
+        padding: 0 4px;
+      }
+      .gameTopOverlay #startBtn #startBtnMain {
+        font-size: 10px;
+      }
+      .gameTopOverlay #pauseBtn {
+        width: 36px;
+        min-width: 36px;
+        max-width: 36px;
+        font-size: 16px;
+      }
+      .gameTopOverlay #waveCallout {
+        min-width: 150px;
+        height: 22px;
+        padding: 3px 6px;
+        font-size: 10px;
+      }
+      .gameTopOverlay .waveSummary {
+        display: none;
+      }
+      .gameTopOverlay .waveSummary.show {
+        display: block;
+        min-width: 176px;
+        height: 26px;
+        padding: 3px 6px;
+        font-size: 9px;
+      }
       .topRow {
         flex-wrap: wrap;
       }
@@ -2223,12 +2527,8 @@
         font-size: 9px;
       }
       .roleLegendGlyph {
-        width: 12px;
+        width: 16px;
         height: 12px;
-      }
-      .roleLegendGlyph svg {
-        width: 9px;
-        height: 9px;
       }
     }
 
@@ -2466,5 +2766,195 @@
       letter-spacing: 0.02em;
       color: #f4f8ff;
       text-shadow: 0 1px 2px rgba(3, 9, 20, 0.75);
+    }
+
+    /* Final mobile override block placed at end to win cascade order. */
+    @media (max-width: 760px) {
+      .gameTopOverlay {
+        top: 5px;
+        left: 6px;
+        right: 6px;
+        gap: 5px;
+      }
+      .overlayStat {
+        min-height: 22px;
+        padding: 2px 6px;
+        border-radius: 7px;
+        gap: 4px;
+        font-size: 10px;
+      }
+      .statWithIcon {
+        min-width: 66px;
+        gap: 4px;
+        padding-right: 6px;
+      }
+      .bankStat {
+        gap: 4px;
+        padding-right: 7px;
+      }
+      .statIcon {
+        width: 14px;
+        height: 13px;
+      }
+      .bankIcon::before {
+        left: 0;
+        top: 5px;
+        width: 13px;
+        height: 7px;
+      }
+      .bankIcon::after {
+        left: 0;
+        top: 0;
+        width: 14px;
+        height: 6px;
+        line-height: 6px;
+        font-size: 4.8px;
+      }
+      .coinStackIcon::before {
+        width: 10px;
+        height: 10px;
+        left: 2px;
+        top: 2px;
+      }
+      .coinStackIcon::after {
+        width: 5px;
+        height: 5px;
+        left: 4px;
+        top: 4px;
+      }
+      .vegIconGroup {
+        width: 16px;
+        height: 12px;
+      }
+      .miniCarrot {
+        width: 5px;
+        height: 8px;
+        top: 3px;
+      }
+      .miniTomato {
+        width: 6px;
+        height: 6px;
+        left: 5px;
+        top: 4px;
+      }
+      .miniLettuce {
+        width: 6px;
+        height: 6px;
+        left: 10px;
+        top: 4px;
+      }
+      .waveTopHeader {
+        gap: 3px;
+      }
+      .waveControl {
+        border-radius: 9px;
+      }
+      .gameTopOverlay #waveBanner {
+        width: 116px;
+        min-width: 116px;
+        max-width: 116px;
+        font-size: 10px;
+        gap: 4px;
+        padding: 3px 6px;
+      }
+      #waveBannerTag {
+        font-size: 8px;
+        padding: 1px 5px;
+      }
+      .flawlessChip {
+        min-width: 76px;
+        max-width: 76px;
+        font-size: 8px;
+        gap: 3px;
+        padding: 3px 5px;
+      }
+      .flawlessDot {
+        width: 6px;
+        height: 6px;
+      }
+      .gameTopOverlay #startBtn {
+        width: 154px;
+        min-width: 154px;
+        max-width: 154px;
+        padding: 3px 6px;
+        column-gap: 5px;
+      }
+      .gameTopOverlay #startBtn #startBtnGlyph {
+        min-width: 24px;
+        height: 18px;
+        font-size: 8px;
+        padding: 0 4px;
+      }
+      .gameTopOverlay #startBtn #startBtnMain {
+        font-size: 10px;
+      }
+      .gameTopOverlay #pauseBtn {
+        width: 36px;
+        min-width: 36px;
+        max-width: 36px;
+        font-size: 16px;
+      }
+      .gameTopOverlay #waveCallout {
+        min-width: 150px;
+        height: 22px;
+        padding: 3px 6px;
+        font-size: 10px;
+      }
+      .gameTopOverlay .waveSummary {
+        display: none;
+      }
+      .gameTopOverlay .waveSummary.show {
+        display: block;
+        min-width: 176px;
+        height: 26px;
+        padding: 3px 6px;
+        font-size: 9px;
+      }
+    }
+
+    @media (max-width: 760px) and (pointer: coarse) {
+      .towerFloatCard,
+      .towerFloatCard:hover,
+      .towerFloatCard:focus-within {
+        min-width: 132px;
+        max-width: 148px;
+        padding: 4px 5px;
+      }
+      .towerFloatIconRow {
+        flex-direction: column;
+        gap: 7px;
+        align-items: stretch;
+      }
+      .towerFloatIconBtn {
+        width: 100%;
+        height: 40px;
+        border-radius: 12px;
+        padding: 0 9px;
+        flex-direction: row;
+        justify-content: flex-start;
+        gap: 8px;
+        font-size: 10px;
+      }
+      .towerFloatIconBtn.upgradePrimary {
+        width: 100%;
+        height: 48px;
+      }
+      .towerFloatIconBtn.sellSecondary {
+        width: 100%;
+        height: 40px;
+        margin-top: 2px;
+      }
+      .towerFloatGlyph {
+        min-width: 14px;
+        text-align: center;
+      }
+      .towerFloatLabel {
+        font-size: 10px;
+      }
+      #towerFloatSellVal,
+      #towerFloatUpgradeVal {
+        margin-left: auto;
+        font-size: 11px;
+      }
     }
 
